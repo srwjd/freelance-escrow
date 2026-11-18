@@ -2,97 +2,97 @@
   "runner": "Node test + Ganache EVM + ethers",
   "compiler": "solc 0.8.24, optimizer 200, Paris",
   "chainId": 1337,
-  "generatedAt": "2026-11-18T02:31:41.381Z",
+  "generatedAt": "2026-11-18T02:32:53.899Z",
   "results": [
     {
       "name": "C01 create: correct parties, amount, deadline and event",
       "status": "PASS",
-      "milliseconds": 432
+      "milliseconds": 369
     },
     {
       "name": "C02 create: reject zero/self wallet, empty fields, zero amount and past deadline",
       "status": "PASS",
-      "milliseconds": 134
+      "milliseconds": 169
     },
     {
       "name": "C03 deposit: exact payment is held in escrow",
       "status": "PASS",
-      "milliseconds": 248
+      "milliseconds": 233
     },
     {
       "name": "C04 deposit: reject wrong sender, amount, missing job and repeated deposit",
       "status": "PASS",
-      "milliseconds": 293
+      "milliseconds": 330
     },
     {
       "name": "C05 submit: only freelancer after funding; reject empty evidence",
       "status": "PASS",
-      "milliseconds": 404
+      "milliseconds": 344
     },
     {
       "name": "C06 submit: freelancer can update evidence while awaiting approval",
       "status": "PASS",
-      "milliseconds": 257
+      "milliseconds": 252
     },
     {
       "name": "C07 release: employer approval transfers exact ETH to freelancer",
       "status": "PASS",
-      "milliseconds": 315
+      "milliseconds": 295
     },
     {
       "name": "C08 release: reject premature approval, outsider, freelancer and double payment",
-      "status": "FAIL",
-      "error": "missing revert data (action=\"estimateGas\", data=null, reason=null, transaction={ \"data\": \"0xb759f9540000000000000000000000000000000000000000000000000000000000000001\", \"from\": \"0x73dAa3750288A76c02c979eabafFD558Da963f93\", \"to\": \"0x2a39f699892Bb2c6746ACB4df8Cf49D5a65e00C6\" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.16.0)"
+      "status": "PASS",
+      "milliseconds": 365
     },
     {
       "name": "C09 dispute: either party can open after funding; reject outsider/empty reason",
       "status": "PASS",
-      "milliseconds": 472
+      "milliseconds": 302
     },
     {
       "name": "C10 dispute: freeze normal approval and submission",
       "status": "PASS",
-      "milliseconds": 321
+      "milliseconds": 368
     },
     {
       "name": "C11 resolve refund: only administrator; exact refund; cannot resolve twice",
       "status": "PASS",
-      "milliseconds": 505
+      "milliseconds": 402
     },
     {
       "name": "C12 resolve pay: exact payment to freelancer; no approval after resolution",
       "status": "PASS",
-      "milliseconds": 595
+      "milliseconds": 392
     },
     {
       "name": "C13 resolve: administrator cannot settle a non-disputed job",
       "status": "PASS",
-      "milliseconds": 358
+      "milliseconds": 175
     },
     {
       "name": "C14 cancel: employer only, before funding; blocks later deposit",
       "status": "PASS",
-      "milliseconds": 356
+      "milliseconds": 355
     },
     {
       "name": "C15 tracking: on-chain events contain job, actor, action and amount",
       "status": "PASS",
-      "milliseconds": 205
+      "milliseconds": 232
     },
     {
       "name": "C16 accounting: independent jobs cannot spend one another’s escrow",
       "status": "PASS",
-      "milliseconds": 312
+      "milliseconds": 457
     },
     {
       "name": "C17 withdrawal: direct ETH transfer is rejected; no arbitrary withdraw method",
       "status": "PASS",
-      "milliseconds": 31
+      "milliseconds": 25
     },
     {
       "name": "C18 transfer failure: rejected recipient keeps escrow and Submitted status",
       "status": "PASS",
-      "milliseconds": 310
+      "milliseconds": 414
     }
   ]
 }

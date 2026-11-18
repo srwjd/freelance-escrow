@@ -52,7 +52,7 @@ export function configRead(){try{return {...{chainId:11155111,address:'',deploym
 export function configSave(config){localStorage.setItem('worksure.chain',JSON.stringify(config));}
 export async function walletConnect(){
  if(!window.ethereum)throw Error('ไม่พบกระเป๋า Ethereum กรุณาติดตั้ง MetaMask หรือกระเป๋าที่รองรับ');
- const provider=new BrowserProvider(window.ethereum);await provider.send('eth_requestAccounts',[]);const signer=await provider.getSigner();return {provider,signer,address:await signer.getAddress()};
+ const provider=new BrowserProvider(window.ethereum,undefined,{cacheTimeout:-1});provider.pollingInterval=1000;await provider.send('eth_requestAccounts',[]);const signer=await provider.getSigner();return {provider,signer,address:await signer.getAddress()};
 }
 async function checkedContract(config,session){
  const network=await session.provider.getNetwork();
@@ -66,7 +66,7 @@ export async function walletRead(config,session){
  for(let i=1;i<=count;i++){
   const j=await contract.getJob(i);jobs.push({id:Number(j.id),employer:j.employer,freelancer:j.freelancer,title:j.title,description:j.description,amount:formatEther(j.amount),deadline:Number(j.deadline),status:Number(j.status),evidence:j.evidence,disputeReason:j.disputeReason});
  }
- const last=await session.provider.getBlockNumber();const activity=[];
+ const last=Number(await session.provider.send('eth_blockNumber',[]));const activity=[];
  for(let from=Number(config.deploymentBlock)||0;from<=last;from+=2000){
   const logs=await contract.queryFilter(contract.filters.Activity(),from,Math.min(from+1999,last));
   for(const log of logs){const b=await log.getBlock();activity.push({jobId:Number(log.args.jobId),actor:log.args.actor,action:log.args.action,details:log.args.details,amount:formatEther(log.args.amount),time:b.timestamp,hash:log.transactionHash,blockNumber:log.blockNumber});}

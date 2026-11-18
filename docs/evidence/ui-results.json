@@ -1,0 +1,341 @@
+{
+  "config": {
+    "configFile": "/workspace/freelance-escrow/playwright.config.js",
+    "rootDir": "/workspace/freelance-escrow/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "docs/evidence/ui-results.json"
+        }
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report",
+          "open": "never"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/workspace/freelance-escrow/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/workspace/freelance-escrow/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "*.spec.js"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev -- --port 5173",
+      "url": "http://127.0.0.1:5173",
+      "reuseExistingServer": true
+    }
+  },
+  "suites": [
+    {
+      "title": "ui.spec.js",
+      "file": "ui.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "U01–U08 complete employer → freelancer → approval, logout, tracking and persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6164,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T02:36:26.230Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6cacfa4b79c1be8f210f-181f02d6a85c0468d25c",
+          "file": "ui.spec.js",
+          "line": 52,
+          "column": 1
+        },
+        {
+          "title": "U09–U12 dispute freezes approval, admin refunds and pays both outcomes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3644,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T02:36:32.829Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6cacfa4b79c1be8f210f-fc20d60cfe887bc1ea70",
+          "file": "ui.spec.js",
+          "line": 151,
+          "column": 1
+        },
+        {
+          "title": "U13–U16 validation, cancellation, filtering, settings and demo reset",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3241,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T02:36:36.491Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6cacfa4b79c1be8f210f-d2c9c8abfc543af39a26",
+          "file": "ui.spec.js",
+          "line": 230,
+          "column": 1
+        },
+        {
+          "title": "U17 responsive mobile, navigation and keyboard dialog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2215,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T02:36:39.748Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6cacfa4b79c1be8f210f-9e13a9f4e67e48b2994d",
+          "file": "ui.spec.js",
+          "line": 305,
+          "column": 1
+        },
+        {
+          "title": "U18 wallet connection has a clear missing-provider error",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1466,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T02:36:41.997Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6cacfa4b79c1be8f210f-d9177df8310c26a03de1",
+          "file": "ui.spec.js",
+          "line": 345,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "wallet.spec.js",
+      "file": "wallet.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "W01 real application → EIP-1193 test provider → deployed Ganache contract, all six functions",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 18183,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('.history-table tbody tr')\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  12000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 12000ms\u001b[22m\n\u001b[2m  - waiting for locator('.history-table tbody tr')\u001b[22m\n\u001b[2m    16 × locator resolved to 3 elements\u001b[22m\n\u001b[2m       - unexpected value \"3\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('.history-table tbody tr')\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  12000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 12000ms\u001b[22m\n\u001b[2m  - waiting for locator('.history-table tbody tr')\u001b[22m\n\u001b[2m    16 × locator resolved to 3 elements\u001b[22m\n\u001b[2m       - unexpected value \"3\"\u001b[22m\n\n    at /workspace/freelance-escrow/tests/wallet.spec.js:32:589",
+                    "location": {
+                      "file": "/workspace/freelance-escrow/tests/wallet.spec.js",
+                      "column": 589,
+                      "line": 32
+                    },
+                    "snippet": "  30 |   await page.goto('/');await connect();await create('EVM test · Website delivery');await open(1);await screenshot(page,'27-wallet-create-onchain');await page.getByRole('dialog').getByRole('button',{name:'ฝากเงิน',exact:true}).click();await confirm('ยืนยันฝากเงินเข้า Escrow');expect(await c.totalEscrow()).toBe(parseEther('0.02'));await open(1);await screenshot(page,'28-wallet-deposit-onchain');await close();\n  31 |   await swap(2);await open(1);await page.getByRole('dialog').getByRole('button',{name:'ส่งมอบงาน',exact:true}).click();await page.getByLabel('URL หรือ Hash ของผลงาน').fill('ipfs://evm-end-to-end-delivery');await confirm('ยืนยันส่งมอบงาน');expect((await c.getJob(1)).status).toBe(2n);await open(1);await screenshot(page,'29-wallet-submit-onchain');await close();\n> 32 |   await swap(1);await open(1);await page.getByRole('dialog').getByRole('button',{name:'อนุมัติและจ่ายเงิน',exact:true}).click();const before=BigInt(await provider.send('eth_getBalance',[addresses[2],'latest']));await confirm('ยืนยันอนุมัติและจ่ายเงิน');const after=BigInt(await provider.send('eth_getBalance',[addresses[2],'latest']));expect(after-before).toBe(parseEther('0.02'));await open(1);await screenshot(page,'30-wallet-release-onchain');await close();await page.getByRole('button',{name:'ประวัติธุรกรรม',exact:true}).click();await expect(page.locator('.history-table tbody tr')).toHaveCount(4);await screenshot(page,'31-wallet-real-transaction-hashes');\n     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ^\n  33 |   await page.getByRole('button',{name:'ภาพรวม',exact:true}).click();await create('EVM test · Disputed delivery');await open(2);await page.getByRole('dialog').getByRole('button',{name:'ฝากเงิน',exact:true}).click();await confirm('ยืนยันฝากเงินเข้า Escrow');await open(2);await page.getByRole('dialog').getByRole('button',{name:'เปิดข้อพิพาท',exact:true}).click();await page.getByLabel('เหตุผลการเปิดข้อพิพาท').fill('Missing agreed source files');await confirm('ยืนยันเปิดข้อพิพาท');await open(2);await screenshot(page,'32-wallet-dispute-onchain');expect((await c.getJob(2)).status).toBe(3n);await close();\n  34 |   await swap(0);await page.getByRole('button',{name:/จัดการข้อพิพาท/}).click();await page.getByRole('button',{name:'ดูงาน 2',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'พิจารณาข้อพิพาท',exact:true}).click();await page.getByLabel('เหตุผลประกอบการตัดสิน').fill('Refund approved after evidence review');await confirm('ยืนยันคำตัดสิน');expect((await c.getJob(2)).status).toBe(5n);expect(await c.totalEscrow()).toBe(0n);await page.getByRole('button',{name:'ดูงาน 2',exact:true}).click();await screenshot(page,'33-wallet-admin-refund-onchain');await close();\n  35 |   await page.evaluate(()=>window.ethereum._testEmit('accountsChanged',[]));await expect(page.getByRole('button',{name:'เชื่อมต่อกระเป๋า',exact:true})).toBeVisible();await screenshot(page,'34-wallet-account-change-logout');"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/workspace/freelance-escrow/tests/wallet.spec.js",
+                        "column": 589,
+                        "line": 32
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('.history-table tbody tr')\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  12000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 12000ms\u001b[22m\n\u001b[2m  - waiting for locator('.history-table tbody tr')\u001b[22m\n\u001b[2m    16 × locator resolved to 3 elements\u001b[22m\n\u001b[2m       - unexpected value \"3\"\u001b[22m\n\n\n  30 |   await page.goto('/');await connect();await create('EVM test · Website delivery');await open(1);await screenshot(page,'27-wallet-create-onchain');await page.getByRole('dialog').getByRole('button',{name:'ฝากเงิน',exact:true}).click();await confirm('ยืนยันฝากเงินเข้า Escrow');expect(await c.totalEscrow()).toBe(parseEther('0.02'));await open(1);await screenshot(page,'28-wallet-deposit-onchain');await close();\n  31 |   await swap(2);await open(1);await page.getByRole('dialog').getByRole('button',{name:'ส่งมอบงาน',exact:true}).click();await page.getByLabel('URL หรือ Hash ของผลงาน').fill('ipfs://evm-end-to-end-delivery');await confirm('ยืนยันส่งมอบงาน');expect((await c.getJob(1)).status).toBe(2n);await open(1);await screenshot(page,'29-wallet-submit-onchain');await close();\n> 32 |   await swap(1);await open(1);await page.getByRole('dialog').getByRole('button',{name:'อนุมัติและจ่ายเงิน',exact:true}).click();const before=BigInt(await provider.send('eth_getBalance',[addresses[2],'latest']));await confirm('ยืนยันอนุมัติและจ่ายเงิน');const after=BigInt(await provider.send('eth_getBalance',[addresses[2],'latest']));expect(after-before).toBe(parseEther('0.02'));await open(1);await screenshot(page,'30-wallet-release-onchain');await close();await page.getByRole('button',{name:'ประวัติธุรกรรม',exact:true}).click();await expect(page.locator('.history-table tbody tr')).toHaveCount(4);await screenshot(page,'31-wallet-real-transaction-hashes');\n     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ^\n  33 |   await page.getByRole('button',{name:'ภาพรวม',exact:true}).click();await create('EVM test · Disputed delivery');await open(2);await page.getByRole('dialog').getByRole('button',{name:'ฝากเงิน',exact:true}).click();await confirm('ยืนยันฝากเงินเข้า Escrow');await open(2);await page.getByRole('dialog').getByRole('button',{name:'เปิดข้อพิพาท',exact:true}).click();await page.getByLabel('เหตุผลการเปิดข้อพิพาท').fill('Missing agreed source files');await confirm('ยืนยันเปิดข้อพิพาท');await open(2);await screenshot(page,'32-wallet-dispute-onchain');expect((await c.getJob(2)).status).toBe(3n);await close();\n  34 |   await swap(0);await page.getByRole('button',{name:/จัดการข้อพิพาท/}).click();await page.getByRole('button',{name:'ดูงาน 2',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'พิจารณาข้อพิพาท',exact:true}).click();await page.getByLabel('เหตุผลประกอบการตัดสิน').fill('Refund approved after evidence review');await confirm('ยืนยันคำตัดสิน');expect((await c.getJob(2)).status).toBe(5n);expect(await c.totalEscrow()).toBe(0n);await page.getByRole('button',{name:'ดูงาน 2',exact:true}).click();await screenshot(page,'33-wallet-admin-refund-onchain');await close();\n  35 |   await page.evaluate(()=>window.ethereum._testEmit('accountsChanged',[]));await expect(page.getByRole('button',{name:'เชื่อมต่อกระเป๋า',exact:true})).toBeVisible();await screenshot(page,'34-wallet-account-change-logout');\n    at /workspace/freelance-escrow/tests/wallet.spec.js:32:589"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-18T02:36:43.849Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/workspace/freelance-escrow/test-results/wallet-W01-real-applicatio-918c1--contract-all-six-functions/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/workspace/freelance-escrow/test-results/wallet-W01-real-applicatio-918c1--contract-all-six-functions/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/workspace/freelance-escrow/test-results/wallet-W01-real-applicatio-918c1--contract-all-six-functions/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/workspace/freelance-escrow/tests/wallet.spec.js",
+                    "column": 589,
+                    "line": 32
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "b230e919c4d0f6ac9341-98ab3b7bc7591708628a",
+          "file": "wallet.spec.js",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T02:36:22.549Z",
+    "duration": 39817.281,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}
