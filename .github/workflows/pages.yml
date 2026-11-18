@@ -13,6 +13,8 @@ concurrency:
 jobs:
   verify-and-build:
     runs-on: ubuntu-24.04
+    env:
+      BROWSER_EXECUTABLE_PATH: /usr/bin/google-chrome
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,7 +22,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: google-chrome --version
       - run: npm run test:contract
       - run: npm run test:ui
       - run: npm run build

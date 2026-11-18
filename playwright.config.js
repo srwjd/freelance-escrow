@@ -22,7 +22,7 @@ export default defineConfig({
     viewport: { width: 1440, height: 1000 },
     headless: true,
     launchOptions: {
-      executablePath: process.env.CI ? undefined : "/usr/bin/chromium",
+      executablePath: process.env.BROWSER_EXECUTABLE_PATH || (process.env.CI ? undefined : "/usr/bin/chromium"),
       args: ["--no-sandbox"],
     },
     screenshot: "only-on-failure",
