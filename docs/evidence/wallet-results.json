@@ -1,0 +1,34 @@
+{
+  "network": "Ganache local EVM (not Sepolia)",
+  "chainId": 1337,
+  "provider": "EIP-1193 injected test bridge (not MetaMask extension)",
+  "contract": "0x923eDaB58B3B65F54567DE943b08B0e9D54D6040",
+  "deploymentBlock": 1,
+  "accounts": {
+    "administrator": "0x3395EE7aA2693047F0d0F3923a0E7BBFa31c90A5",
+    "employer": "0x279F2a890bC756b1Dc953b830Ebd9Aa62526eeEB",
+    "freelancer": "0x183aeC0D9d02ABf4aD03a87C5a733af7921e8b26"
+  },
+  "transactions": [
+    "0x6fe8bae43b5dc3cc878c21544a57dfa0e6c8b013a5d447e98c971ccaba9adae1",
+    "0x098093897e3b69333042a7ab1b3c433b3a417c3f618046fd151a55859886981b",
+    "0xae7f969ab54160517404970e2da697ad6f8b69da7975ae710695a3a427e172e3",
+    "0xcee3ac1bd601272de1a50b4fb91b058ded14fc1cf877f1d1e838a70419a856c4",
+    "0xbb3b1c5882d4830f99e96d7ad24ccc796d0fdc4c839c7ba1e9f463047e2141ed",
+    "0x34393330b9d3ae5416a3721d77c9e50d6827a3012445f8d0dac80fb761131699",
+    "0xe18c4c37e054ad9d9dc5b4e960034c26ff6f8a08d724c8941b78954b7773e21f",
+    "0x0d375b0dcd4c7072517bf1dfc20ade4cdd115f18544a2a83c8a61cbcd14d2a8e"
+  ],
+  "finalEscrow": "0",
+  "outcome": "PASS",
+  "assertions": [
+    "create",
+    "exact deposit held",
+    "freelancer evidence on chain",
+    "exact release amount",
+    "events and hashes",
+    "dispute frozen",
+    "administrator refund",
+    "wallet accountsChanged ends session"
+  ]
+}

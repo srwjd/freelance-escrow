@@ -1,98 +1,1741 @@
-import '@fontsource/manrope/400.css';
-import '@fontsource/manrope/500.css';
-import '@fontsource/manrope/600.css';
-import '@fontsource/manrope/700.css';
-import '@fontsource/manrope/800.css';
-import '@fontsource/ibm-plex-sans-thai/400.css';
-import '@fontsource/ibm-plex-sans-thai/500.css';
-import '@fontsource/ibm-plex-sans-thai/600.css';
-import '@fontsource/ibm-plex-sans-thai/700.css';
-import React,{useState,useEffect} from 'react';
-import {createRoot} from 'react-dom/client';
-import {ArrowUpRight,ArrowRight,ArrowDownLeft,Plus,Wallet,ShieldCheck,LayoutDashboard,BriefcaseBusiness,History,Scale,Settings,LogOut,Search,ChevronRight,Check,Copy,X,ExternalLink,FileCheck2,Clock3,LockKeyhole,RefreshCw,Menu,CheckCircle2,AlertCircle,GraduationCap,Code2,Coins,Link2} from 'lucide-react';
-import {ACCOUNTS,STATUS,ACTIONS,demoRead,demoReset,demoAction,equal,isAddress,parseEther,formatEther,configRead,configSave,walletConnect,walletRead,walletAction,friendlyError,explorerUrl} from './services';
-import './style.css';
-const short=a=>a?`${a.slice(0,6)}…${a.slice(-4)}`:'—';
-const money=n=>Number(n).toLocaleString('en',{maximumFractionDigits:5});
-const date=n=>new Date(n*1000).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
-const dateTime=n=>new Date(n*1000).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-const icons=[BriefcaseBusiness,Clock3,FileCheck2,Scale,CheckCircle2,ArrowDownLeft,X];
-function App(){
- const [session,setSession]=useState(()=>{try{return JSON.parse(sessionStorage.getItem('worksure.session'));}catch{return null;}});
- const [data,setData]=useState({jobs:[],activity:[],balance:'0',admin:ACCOUNTS.admin.address});
- const [page,setPage]=useState('dashboard');const [config,setConfig]=useState(configRead);const [dialog,setDialog]=useState(null);const [toast,setToast]=useState(null);const [busy,setBusy]=useState(false);const [loading,setLoading]=useState(false);const [loadError,setLoadError]=useState('');const [query,setQuery]=useState('');const [filter,setFilter]=useState('all');const [menu,setMenu]=useState(false);const [loginMode,setLoginMode]=useState('demo');const [selectedRole,setSelectedRole]=useState('employer');const [pending,setPending]=useState('');
- const notify=(text,error=false)=>setToast({text,error,id:Date.now()});
- useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(null),6500);return()=>clearTimeout(t);},[toast]);
- const address=session?.address;const demo=session?.mode==='demo';const admin=equal(address,data.admin);const profile=demo?Object.values(ACCOUNTS).find(a=>equal(a.address,address)):null;
- const reload=async(s=session,c=config)=>{
-  if(!s)return;setLoading(true);setLoadError('');
-  try{if(s.mode==='demo'){const d=demoRead();setData({...d,admin:ACCOUNTS.admin.address,balance:formatEther(d.balances[s.address.toLowerCase()]||'0')});}
-  else setData(await walletRead(c,s));}
-  catch(e){setLoadError(friendlyError(e));setData({jobs:[],activity:[],balance:'0',admin:''});}
-  finally{setLoading(false);}
- };
- useEffect(()=>{reload();},[address,config]);
- useEffect(()=>{
-  if(!session||demo||!window.ethereum?.on)return;
-  const changed=()=>{setSession(null);sessionStorage.removeItem('worksure.session');setData({jobs:[],activity:[],balance:'0',admin:''});setPage('dashboard');notify('บัญชีหรือเครือข่ายเปลี่ยนแล้ว กรุณาเชื่อมต่อใหม่');};
-  window.ethereum.on('accountsChanged',changed);window.ethereum.on('chainChanged',changed);
-  return()=>{window.ethereum.removeListener?.('accountsChanged',changed);window.ethereum.removeListener?.('chainChanged',changed);};
- },[session,demo]);
- useEffect(()=>{const f=()=>{if(demo)reload();};window.addEventListener('storage',f);return()=>window.removeEventListener('storage',f);},[demo,address]);
- const login=async()=>{setBusy(true);try{let s;if(loginMode==='demo'){s={mode:'demo',address:ACCOUNTS[selectedRole].address};sessionStorage.setItem('worksure.session',JSON.stringify(s));}else{s={mode:'wallet',...await walletConnect()};}setSession(s);setPage('dashboard');setQuery('');setFilter('all');notify('เข้าสู่ระบบเรียบร้อย');}catch(e){notify(friendlyError(e),true);}finally{setBusy(false);}};
- const logout=()=>{setSession(null);sessionStorage.removeItem('worksure.session');setDialog(null);setData({jobs:[],activity:[],balance:'0',admin:''});setPage('dashboard');setMenu(false);setQuery('');setFilter('all');notify('ออกจากระบบแล้ว เลือกบัญชีอื่นเพื่อทดสอบต่อได้');};
- const execute=async(action,id,form={})=>{setBusy(true);setPending('');try{
-  if(demo)await demoAction(address,action,id,form);else await walletAction(config,session,action,id,form,hash=>setPending(hash));
-  setDialog(null);notify(`${ACTIONS[action]}สำเร็จ${demo?' · โหมดสาธิต':''}`);await reload();
- }catch(e){notify(friendlyError(e),true);}finally{setBusy(false);setPending('');}};
- const go=p=>{setPage(p);setMenu(false);setQuery('');setFilter('all');};
- const mine=data.jobs.filter(j=>equal(j.employer,address)||equal(j.freelancer,address));
- const scope=page==='admin'?data.jobs:mine;
- const listed=scope.filter(j=>(filter==='all'||String(j.status)===filter)&&`${j.title} ${j.id} ${j.description}`.toLowerCase().includes(query.toLowerCase()));
- const escrow=mine.filter(j=>[1,2,3].includes(j.status)).reduce((s,j)=>s+parseEther(j.amount),0n);
- const paid=mine.filter(j=>j.status===4).reduce((s,j)=>s+parseEther(j.amount),0n);
- const active=mine.filter(j=>[0,1,2,3].includes(j.status)).length;
- const nav=[{id:'dashboard',label:'ภาพรวม',icon:LayoutDashboard},{id:'jobs',label:'ข้อตกลงของฉัน',icon:BriefcaseBusiness},{id:'history',label:'ประวัติธุรกรรม',icon:History},...(admin?[{id:'admin',label:'จัดการข้อพิพาท',icon:Scale}]:[]),{id:'settings',label:'เชื่อมต่อสัญญา',icon:Settings},{id:'guide',label:'วิธีใช้งาน',icon:GraduationCap}];
- const Badge=({status})=>{const Icon=icons[status];return <span className={`badge status-${status}`}><Icon size={12}/>{STATUS[status]}</span>;};
- const Tx=({event})=>{const url=!demo&&explorerUrl(config.chainId,event.hash);return url?<a className="hash" href={url} target="_blank" rel="noreferrer">{short(event.hash)} <ExternalLink size={12}/></a>:<span className="hash" title={event.hash}>{demo?'DEMO · ':''}{short(event.hash)}</span>;};
- const JobActions=({job})=><div className="action-row">{equal(job.employer,address)&&job.status===0&&<><button className="primary" onClick={()=>setDialog({type:'DEPOSIT',job})}><Wallet size={15}/>ฝากเงิน</button><button className="ghost danger" onClick={()=>setDialog({type:'CANCEL',job})}>ยกเลิกงาน</button></>}{equal(job.freelancer,address)&&[1,2].includes(job.status)&&<button className="primary" onClick={()=>setDialog({type:'SUBMIT',job})}><FileCheck2 size={15}/>{job.status===2?'ส่งงานใหม่':'ส่งมอบงาน'}</button>}{equal(job.employer,address)&&job.status===2&&<button className="primary" onClick={()=>setDialog({type:'RELEASE',job})}><CheckCircle2 size={15}/>อนุมัติและจ่ายเงิน</button>}{(equal(job.employer,address)||equal(job.freelancer,address))&&[1,2].includes(job.status)&&<button className="secondary danger" onClick={()=>setDialog({type:'DISPUTE',job})}><Scale size={15}/>เปิดข้อพิพาท</button>}{admin&&job.status===3&&<button className="primary" onClick={()=>setDialog({type:'RESOLVE',job})}><Scale size={15}/>พิจารณาข้อพิพาท</button>}{[4,5,6].includes(job.status)&&<span className="muted small">ข้อตกลงนี้สิ้นสุดแล้ว</span>}</div>;
- const JobTable=({jobs})=><div className="table-wrap"><table><thead><tr><th>โครงการ / ข้อตกลง</th><th>ค่าจ้าง</th><th>กำหนดส่ง</th><th>สถานะ</th><th aria-label="ดูรายละเอียด"/></tr></thead><tbody>{jobs.map(job=><tr key={job.id} onClick={()=>setDialog({type:'DETAIL',job})} tabIndex="0" onKeyDown={e=>{if(e.key==='Enter')setDialog({type:'DETAIL',job});}}><td><div className={`project-icon p-${job.id%4}`}><BriefcaseBusiness size={19}/></div><div><strong>{job.title}</strong><span className="table-sub">WS-{String(job.id).padStart(3,'0')} <span>·</span> {equal(job.employer,address)?'ผู้ว่าจ้าง':equal(job.freelancer,address)?'ฟรีแลนซ์':'คู่สัญญา'}</span></div></td><td><strong className="numeric">{money(job.amount)}</strong><span className="table-sub">ETH</span></td><td>{date(job.deadline)}</td><td><Badge status={job.status}/></td><td><button className="icon-btn" aria-label={`ดูงาน ${job.id}`} onClick={e=>{e.stopPropagation();setDialog({type:'DETAIL',job});}}><ArrowUpRight size={17}/></button></td></tr>)}</tbody></table>{!jobs.length&&<div className="empty"><BriefcaseBusiness size={30}/><h3>ยังไม่มีข้อตกลงที่ตรงกัน</h3><p>สร้างข้อตกลงใหม่ หรือเปลี่ยนตัวกรองเพื่อดูงาน</p></div>}</div>;
- return <>
- {!session?<div className="login-shell"><div className="login-story"><a className="brand" href="#"><span className="brand-mark"><ShieldCheck size={25}/></span>worksure<span className="brand-dot">.</span></a><div className="login-copy"><span className="eyebrow light">FREELANCE ESCROW PLATFORM</span><h1>งานที่มั่นใจได้<br/>การจ่ายเงินที่<br/><em>ไว้ใจกันได้.</em></h1><p>พื้นที่ทำงานของผู้ว่าจ้างและฟรีแลนซ์<br/>ดูแลทุกข้อตกลงด้วย Ethereum Smart Contract</p><div className="login-steps">{['ตกลงขอบเขตงาน','ฝากเงินไว้ใน Escrow','ตรวจรับแล้วรับเงิน'].map((t,i)=><div key={t}><span>0{i+1}</span>{t}<Check size={16}/></div>)}</div></div><div className="story-footer"><ShieldCheck size={16}/> ทุกการจ่ายเงิน เป็นไปตามข้อตกลง</div><div className="orb orb-one"/><div className="orb orb-two"/></div><main className="login-main"><div className="login-top">สร้างความเชื่อมั่นในทุกการทำงาน <span>↗</span></div><div className="login-card"><span className="eyebrow">LET’S GET TO WORK</span><h2>ยินดีต้อนรับสู่ Work­sure</h2><p className="muted">เลือกวิธีเข้าสู่ระบบเพื่อเริ่มจัดการข้อตกลงของคุณ</p><div className="segmented"><button className={loginMode==='demo'?'selected':''} onClick={()=>setLoginMode('demo')}>ทดลองใช้งาน</button><button className={loginMode==='wallet'?'selected':''} onClick={()=>setLoginMode('wallet')}>เชื่อมต่อ Wallet</button></div>{loginMode==='demo'?<><div className="note"><GraduationCap size={19}/><div><strong>โหมดสาธิต · ไม่ใช้เงินจริง</strong><p>ข้อมูลเก็บในเบราว์เซอร์ ไม่มีธุรกรรมบนบล็อกเชน<br/>ออกจากระบบเพื่อสลับบทบาททดสอบได้ทุกเมื่อ</p></div></div><label className="field-label">เลือกบัญชีทดสอบ</label><div className="role-list">{Object.entries(ACCOUNTS).map(([key,a])=><button key={key} className={`role-option ${selectedRole===key?'chosen':''}`} onClick={()=>setSelectedRole(key)}><span className={`avatar avatar-${key}`}>{a.initials}</span><span><strong>{a.name}</strong><small>{a.role} · {short(a.address)}</small></span><span className="radio">{selectedRole===key&&<span/>}</span></button>)}</div></>:<><div className="wallet-illustration"><Wallet size={42}/></div><h3>ใช้กระเป๋า Ethereum ของคุณ</h3><p className="muted">รองรับ MetaMask และกระเป๋า EIP-1193<br/>ตั้งค่า Contract Address หลังเชื่อมต่อได้</p><div className="note"><ShieldCheck size={18}/><div>แนะนำ Sepolia testnet สำหรับการเรียนและทดสอบ ไม่ต้องกรอก seed phrase บนเว็บไซต์</div></div></>}
- <button className="primary login-button" disabled={busy} onClick={login}>{busy?'กำลังเชื่อมต่อ…':loginMode==='demo'?'เข้าสู่ระบบสาธิต':'เชื่อมต่อกระเป๋า'}<ArrowRight size={18}/></button><p className="login-caption"><LockKeyhole size={13}/> {loginMode==='demo'?'ทดลองครบทุกบทบาทได้โดยไม่ต้องมีกระเป๋า':'ยืนยันธุรกรรมด้วยกระเป๋าของคุณเท่านั้น'}</p></div><footer>WORKSURE © {new Date().getFullYear()}<span>Freelance Escrow & Smart Payment</span></footer></main></div>:<div className="app-shell">
- <aside className={`sidebar ${menu?'open':''}`}><a className="brand" href="#" onClick={()=>go('dashboard')}><span className="brand-mark"><ShieldCheck size={23}/></span>worksure<span className="brand-dot">.</span></a><div className="workspace-label">WORKSPACE <span>v1.0</span></div><nav>{nav.map(n=><button key={n.id} className={page===n.id?'nav-item active':'nav-item'} onClick={()=>go(n.id)}><n.icon size={18}/>{n.label}{n.id==='admin'&&data.jobs.some(j=>j.status===3)&&<span className="nav-count">{data.jobs.filter(j=>j.status===3).length}</span>}</button>)}</nav><div className="sidebar-bottom"><div className="escrow-note"><div className="mini-shield"><ShieldCheck size={21}/></div><strong>ข้อตกลงที่ตรวจสอบได้</strong><p>เงินจะจ่ายเมื่อผ่านการตรวจรับ<br/>หรือการตัดสินข้อพิพาทเท่านั้น</p><button onClick={()=>go('guide')}>รู้จัก Escrow <ArrowUpRight size={14}/></button></div><div className="side-network"><span className="live-dot"/>{demo?'Demo workspace':`Chain ID ${config.chainId}`}<span>{demo?'LOCAL':'WEB3'}</span></div></div></aside>
- <div className="app-main"><header className="topbar"><div className="breadcrumb"><button className="icon-btn mobile-menu" aria-label="เปิดเมนู" onClick={()=>setMenu(!menu)}><Menu size={20}/></button><span>Workspace</span><ChevronRight size={14}/><strong>{nav.find(n=>n.id===page)?.label}</strong></div><div className="topbar-right"><span className={`mode-pill ${demo?'demo':'web3'}`}><span/>{demo?'โหมดสาธิต':'Ethereum Wallet'}</span><button className="account-chip" title={address} onClick={()=>go('settings')}><span className="avatar tiny">{profile?.initials||'W'}</span><span>{profile?.name||short(address)}</span></button><button className="logout" onClick={logout}><LogOut size={15}/><span>ออกจากระบบ</span></button></div></header>
- <main className="content">{demo&&<div className="demo-strip"><GraduationCap size={15}/><span>พื้นที่ทดลอง · ใช้ ETH จำลองและข้อมูลในเบราว์เซอร์</span><button onClick={logout}>สลับบัญชี <ArrowRight size={13}/></button></div>}{loadError&&<div className="error-banner" role="alert"><AlertCircle size={18}/><div><strong>ยังโหลดข้อมูลสัญญาไม่ได้</strong><p>{loadError}</p></div><button className="secondary" onClick={()=>go('settings')}>ตั้งค่าสัญญา</button></div>}
- {page==='dashboard'&&<><div className="page-heading"><div><span className="eyebrow">YOUR WORK, PROTECTED</span><h1>สวัสดี, {profile?.name||short(address)} <span className="wave">✳</span></h1><p>ทุกข้อตกลง ทุกความคืบหน้า อยู่ที่นี่แล้ว</p></div><button className="primary" disabled={loading||!!loadError} onClick={()=>setDialog({type:'CREATE'})}><Plus size={18}/>สร้างข้อตกลงใหม่</button></div>
- <div className="stats"><div className="stat-card dark"><div className="stat-top"><span>เงินที่อยู่ใน Escrow</span><span className="stat-icon"><LockKeyhole size={17}/></span></div><div className="stat-number">{money(formatEther(escrow))} <small>ETH</small></div><div className="stat-foot"><span className="live-dot"/>รอเงื่อนไขการจ่ายเงิน</div><div className="stat-orbit"/></div><div className="stat-card"><div className="stat-top"><span>ข้อตกลงที่กำลังดำเนินการ</span><span className="stat-icon"><BriefcaseBusiness size={17}/></span></div><div className="stat-number">{active}<small>โครงการ</small></div><div className="stat-foot">จากทั้งหมด {mine.length} ข้อตกลง</div></div><div className="stat-card"><div className="stat-top"><span>จ่ายเงินสำเร็จแล้ว</span><span className="stat-icon"><ArrowUpRight size={18}/></span></div><div className="stat-number">{money(formatEther(paid))}<small>ETH</small></div><div className="stat-foot"><CheckCircle2 size={13}/> จ่ายเงินตามการตรวจรับและข้อพิพาท</div></div></div>
- <div className="dashboard-grid"><section className="panel projects-panel"><div className="panel-heading"><div><h2>ข้อตกลงของฉัน <span className="count-pill">{mine.length}</span></h2><p>ติดตามสถานะและจัดการงานของคุณ</p></div><button className="text-button" onClick={()=>go('jobs')}>ดูทั้งหมด <ArrowRight size={15}/></button></div><JobTable jobs={mine.slice(-5).reverse()}/></section><section className="panel activity-panel"><div className="panel-heading"><h2>ความเคลื่อนไหวล่าสุด</h2><span className="live-dot"/></div><div className="activity-list">{data.activity.filter(a=>mine.some(j=>j.id===a.jobId)||admin).slice(-4).reverse().map((a,i)=><div className="activity-item" key={a.hash+i}><span className={`activity-icon ${a.action==='DISPUTE'?'amber':''}`}>{a.action==='DISPUTE'?<Scale size={16}/>:a.action==='SUBMIT'?<FileCheck2 size={16}/>:<ArrowDownLeft size={16}/>}</span><div><strong>{ACTIONS[a.action]}</strong><p>{data.jobs.find(j=>j.id===a.jobId)?.title}</p><small>{dateTime(a.time)}</small></div></div>)}{!data.activity.length&&<p className="muted">ยังไม่มีความเคลื่อนไหว</p>}</div><button className="activity-link" onClick={()=>go('history')}>ดูประวัติธุรกรรมทั้งหมด <ArrowUpRight size={15}/></button></section></div>
- <div className="bottom-banner"><span className="banner-icon"><ShieldCheck size={30}/></span><div><span className="eyebrow">BUILT ON TRUST. VERIFIED ON CHAIN.</span><h3>ข้อตกลงชัดเจน ทำงานได้อย่างสบายใจ</h3><p>ฝากเงิน → ส่งมอบงาน → ตรวจรับ → จ่ายเงิน</p></div><button className="secondary" onClick={()=>go('guide')}>ระบบทำงานอย่างไร <ArrowUpRight size={15}/></button></div></>}
- {(page==='jobs'||page==='admin')&&<><div className="page-heading"><div><span className="eyebrow">{page==='admin'?'ADMINISTRATION':'MY AGREEMENTS'}</span><h1>{page==='admin'?'จัดการข้อพิพาท':'ข้อตกลงของฉัน'}</h1><p>{page==='admin'?'ตรวจสอบหลักฐานและตัดสินจ่ายเงินหรือคืนเงินให้คู่สัญญา':'ตรวจสอบขอบเขตงาน เงินประกัน และสถานะการส่งมอบ'}</p></div>{page==='jobs'&&<button className="primary" disabled={!!loadError} onClick={()=>setDialog({type:'CREATE'})}><Plus size={18}/>สร้างข้อตกลงใหม่</button>}</div>{page==='admin'&&<div className="admin-summary"><Scale size={24}/><div><strong>{data.jobs.filter(j=>j.status===3).length} ข้อพิพาทรอการพิจารณา</strong><p>ผู้ดูแลตัดสินได้เฉพาะงานที่เปิดข้อพิพาทแล้ว เงินจะจ่ายเต็มจำนวนให้ฝ่ายที่เลือก</p></div></div>}<section className="panel"><div className="table-controls"><div className="search"><Search size={17}/><input aria-label="ค้นหาโครงการ" placeholder="ค้นหาชื่อโครงการ หรือเลขข้อตกลง…" value={query} onChange={e=>setQuery(e.target.value)}/></div><select aria-label="กรองสถานะ" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">สถานะทั้งหมด</option>{STATUS.map((s,i)=><option key={s} value={i}>{s}</option>)}</select><button className="icon-btn" aria-label="รีเฟรชข้อมูล" disabled={loading} onClick={()=>reload()}><RefreshCw size={17} className={loading?'spin':''}/></button></div><JobTable jobs={listed.slice().reverse()}/></section></>}
- {page==='history'&&<><div className="page-heading"><div><span className="eyebrow">TRANSACTION HISTORY</span><h1>ประวัติธุรกรรม</h1><p>{demo?'บันทึกการทดสอบในเบราว์เซอร์ · รหัส DEMO ไม่ใช่ Transaction Hash จริง':'บันทึกจาก Activity events ของสัญญาที่ตั้งค่า · ยืนยันบนบล็อกเชนแล้ว'}</p></div><button className="secondary" disabled={loading} onClick={()=>reload()}><RefreshCw size={16}/>รีเฟรช</button></div><div className="panel table-wrap"><table className="history-table"><thead><tr><th>รายการ</th><th>ข้อตกลง</th><th>จำนวน</th><th>ผู้ทำรายการ / เวลา</th><th>{demo?'รหัสสาธิต':'Transaction Hash'}</th></tr></thead><tbody>{data.activity.filter(a=>mine.some(j=>j.id===a.jobId)||admin).slice().reverse().map((a,i)=><tr key={a.hash+i}><td><span className="event-tag">{ACTIONS[a.action]}</span><span className="table-sub details-text" title={a.details}>{a.details}</span></td><td>WS-{String(a.jobId).padStart(3,'0')}</td><td className="numeric">{money(a.amount)} ETH</td><td><span title={a.actor}>{short(a.actor)}</span><span className="table-sub">{dateTime(a.time)}</span></td><td><Tx event={a}/><button className="icon-btn" aria-label="คัดลอกรหัสธุรกรรม" onClick={()=>navigator.clipboard.writeText(a.hash).then(()=>notify('คัดลอกรหัสแล้ว')).catch(()=>notify('คัดลอกไม่สำเร็จ',true))}><Copy size={13}/></button></td></tr>)}</tbody></table>{!data.activity.length&&<div className="empty">ยังไม่มีธุรกรรม</div>}</div></>}
- {page==='settings'&&<><div className="page-heading"><div><span className="eyebrow">CONNECTION & ACCOUNT</span><h1>เชื่อมต่อสัญญา</h1><p>ตั้งค่า Smart Contract ที่ deploy จาก Remix IDE</p></div></div><div className="settings-grid"><section className="panel settings-panel"><h2><Code2 size={20}/> Ethereum Smart Contract</h2><form onSubmit={e=>{e.preventDefault();const f=new FormData(e.target);const c={address:f.get('address').trim(),chainId:Number(f.get('chainId')),deploymentBlock:Number(f.get('deploymentBlock'))};if(!isAddress(c.address)){notify('Contract Address ไม่ถูกต้อง',true);return;}if(!Number.isSafeInteger(c.chainId)||c.chainId<=0||!Number.isSafeInteger(c.deploymentBlock)||c.deploymentBlock<0){notify('Chain ID หรือ Deployment Block ไม่ถูกต้อง',true);return;}configSave(c);setConfig(c);notify('บันทึกการตั้งค่าแล้ว');}}><label>Contract Address<input name="address" placeholder="0x…" defaultValue={config.address} required autoComplete="off"/></label><div className="two-fields"><label>Chain ID<input name="chainId" type="number" min="1" step="1" defaultValue={config.chainId} required/></label><label>Deployment Block<input name="deploymentBlock" type="number" min="0" step="1" defaultValue={config.deploymentBlock} required/></label></div><div className="note"><Link2 size={18}/><div>Sepolia: Chain ID 11155111<br/>ใช้ address และเลข block จากธุรกรรม deploy ของคุณ {demo&&<p>ขณะนี้อยู่โหมดสาธิต การตั้งค่านี้ใช้เมื่อเชื่อมต่อ Wallet เท่านั้น</p>}</div></div><button className="primary" type="submit"><Check size={16}/>บันทึกการตั้งค่า</button></form></section><div><section className="panel settings-panel"><h2><Wallet size={20}/> บัญชีปัจจุบัน</h2><p className="muted">{profile?.role||'Ethereum wallet'}</p><code className="address-full">{address}</code><div className="balance-row"><span>ยอดคงเหลือ{demo?'จำลอง':''}</span><strong>{money(data.balance)} ETH</strong></div><button className="secondary" onClick={logout}><LogOut size={15}/>ออกจากระบบ / สลับบัญชี</button><p className="small muted">Wallet: ปุ่มนี้ยกเลิก session ของเว็บไซต์ การสลับบัญชีจริงให้เลือกใน MetaMask แล้วเชื่อมต่อใหม่</p></section>{demo&&<section className="panel settings-panel reset-panel"><h3>เริ่มการสาธิตใหม่</h3><p className="small muted">ลบรายการสาธิตทั้งหมดและคืนข้อมูลตัวอย่าง การตั้งค่าสัญญายังคงอยู่</p><button className="secondary danger" onClick={()=>setDialog({type:'RESET'})}>รีเซ็ตข้อมูลสาธิต</button></section>}</div></div></>}
- {page==='guide'&&<><div className="page-heading"><div><span className="eyebrow">HOW WORKSURE WORKS</span><h1>จากข้อตกลง สู่การจ่ายเงิน</h1><p>ทดสอบได้ครบทั้งผู้ว่าจ้าง ฟรีแลนซ์ และผู้ดูแล</p></div><a className="secondary" href="https://remix.ethereum.org" target="_blank" rel="noreferrer">เปิด Remix IDE <ExternalLink size={15}/></a></div><div className="guide-grid">{[{title:'สร้างข้อตกลง',text:'ผู้ว่าจ้างระบุชื่อ รายละเอียด ค่าจ้าง ETH วันส่ง และ Wallet ฟรีแลนซ์',icon:BriefcaseBusiness},{title:'ฝากเงินเข้า Escrow',text:'ผู้ว่าจ้างฝาก ETH ครบจำนวนตามข้อตกลง ก่อนเริ่มส่งมอบงาน',icon:Wallet},{title:'ส่งมอบงาน',text:'ฟรีแลนซ์แนบ URL หรือ hash เป็นหลักฐาน เปลี่ยนบัญชีด้วยปุ่มออกจากระบบ',icon:FileCheck2},{title:'ตรวจรับและจ่ายเงิน',text:'ผู้ว่าจ้างอนุมัติหลังส่งงาน สัญญาโอน ETH ให้ฟรีแลนซ์และห้ามจ่ายซ้ำ',icon:CheckCircle2},{title:'จัดการข้อพิพาท',text:'คู่สัญญาเปิดข้อพิพาท ผู้ดูแลตัดสินจ่ายฟรีแลนซ์หรือคืนผู้ว่าจ้างเต็มจำนวน',icon:Scale},{title:'ตรวจสอบธุรกรรม',text:'ตรวจสถานะ จำนวนเงิน ผู้ทำรายการ และ Transaction Hash ในหน้าประวัติ',icon:History}].map((g,i)=><section className="panel guide-card" key={g.title}><div><span className="guide-number">0{i+1}</span><g.icon size={23}/></div><h2>{g.title}</h2><p>{g.text}</p></section>)}</div><section className="panel settings-panel"><h2>ใช้งานกับ Remix IDE และ GitHub Pages</h2><ol className="guide-steps"><li><a href="./contracts/FreelanceEscrow.sol" download>ดาวน์โหลด FreelanceEscrow.sol</a> แล้วเปิดใน Remix IDE</li><li>Compile ด้วย Solidity 0.8.24, EVM Paris, เปิด optimization 200 runs แล้ว deploy ผ่าน Remix VM เพื่อทดลอง หรือ Injected Provider บน Sepolia เพื่อเชื่อมหน้าเว็บ บัญชี deploy เป็นผู้ดูแล</li><li>นำ Contract Address, Chain ID และ Deployment Block มาบันทึกในหน้าเชื่อมต่อสัญญา ออกจากระบบแล้วเลือกเชื่อมต่อ Wallet</li><li>GitHub Pages ให้บริการหน้าบ้าน ส่วนการเก็บ ETH และตรวจสิทธิ์อยู่ใน Smart Contract บน Ethereum</li></ol><div className="note"><AlertCircle size={18}/><div>โหมดสาธิตใช้ localStorage และบัญชีตัวอย่าง จึงไม่ใช่ระบบยืนยันตัวตนหรือการชำระเงินจริง กำหนดส่งใช้ติดตามงานเท่านั้น ไม่มีการจ่ายหรือคืนเงินอัตโนมัติเมื่อพ้นกำหนด</div></div></section></>}
- <footer className="app-footer"><span>worksure<span className="brand-dot">.</span> <span>งานมั่นใจ จ่ายตามข้อตกลง</span></span><span><ShieldCheck size={13}/>{demo?'Demo environment · No real funds':'Ethereum Smart Contract'}</span></footer>
- </main></div></div>}
- {dialog&&<Modal key={`${dialog.type}-${dialog.job?.id||''}`} dialog={dialog} busy={busy} pending={pending} demo={demo} address={address} data={data} close={()=>{if(!busy)setDialog(null);}} execute={execute} JobActions={JobActions} Badge={Badge} Tx={Tx} reset={()=>{demoReset();setDialog(null);reload();notify('รีเซ็ตข้อมูลสาธิตแล้ว');}}/>}
- {toast&&<div className={`toast ${toast.error?'toast-error':''}`} role={toast.error?'alert':'status'}>{toast.error?<AlertCircle size={18}/>:<CheckCircle2 size={18}/>}<span>{toast.text}</span><button className="icon-btn" onClick={()=>setToast(null)} aria-label="ปิดข้อความ"><X size={15}/></button></div>}
- </>;
+import "@fontsource/manrope/400.css";
+import "@fontsource/manrope/500.css";
+import "@fontsource/manrope/600.css";
+import "@fontsource/manrope/700.css";
+import "@fontsource/manrope/800.css";
+import "@fontsource/ibm-plex-sans-thai/400.css";
+import "@fontsource/ibm-plex-sans-thai/500.css";
+import "@fontsource/ibm-plex-sans-thai/600.css";
+import "@fontsource/ibm-plex-sans-thai/700.css";
+import React, { useState, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  ArrowUpRight,
+  ArrowRight,
+  ArrowDownLeft,
+  Plus,
+  Wallet,
+  ShieldCheck,
+  LayoutDashboard,
+  BriefcaseBusiness,
+  History,
+  Scale,
+  Settings,
+  LogOut,
+  Search,
+  ChevronRight,
+  Check,
+  Copy,
+  X,
+  ExternalLink,
+  FileCheck2,
+  Clock3,
+  LockKeyhole,
+  RefreshCw,
+  Menu,
+  CheckCircle2,
+  AlertCircle,
+  GraduationCap,
+  Code2,
+  Coins,
+  Link2,
+} from "lucide-react";
+import {
+  ACCOUNTS,
+  STATUS,
+  ACTIONS,
+  demoRead,
+  demoReset,
+  demoAction,
+  equal,
+  isAddress,
+  parseEther,
+  formatEther,
+  configRead,
+  configSave,
+  walletConnect,
+  walletRead,
+  walletAction,
+  friendlyError,
+  explorerUrl,
+} from "./services";
+import "./style.css";
+const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
+const money = (n) =>
+  Number(n).toLocaleString("en", { maximumFractionDigits: 5 });
+const date = (n) =>
+  new Date(n * 1000).toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Bangkok",
+  });
+const dateTime = (n) =>
+  new Date(n * 1000).toLocaleString("th-TH", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Bangkok",
+  });
+const icons = [
+  BriefcaseBusiness,
+  Clock3,
+  FileCheck2,
+  Scale,
+  CheckCircle2,
+  ArrowDownLeft,
+  X,
+];
+function App() {
+  const [session, setSession] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("worksure.session"));
+    } catch {
+      return null;
+    }
+  });
+  const [data, setData] = useState({
+    jobs: [],
+    activity: [],
+    balance: "0",
+    admin: ACCOUNTS.admin.address,
+  });
+  const [page, setPage] = useState("dashboard");
+  const [config, setConfig] = useState(configRead);
+  const [dialog, setDialog] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [menu, setMenu] = useState(false);
+  const [loginMode, setLoginMode] = useState("demo");
+  const [selectedRole, setSelectedRole] = useState("employer");
+  const [pending, setPending] = useState("");
+  const notify = (text, error = false) =>
+    setToast({ text, error, id: Date.now() });
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6500);
+    return () => clearTimeout(t);
+  }, [toast]);
+  const address = session?.address;
+  const demo = session?.mode === "demo";
+  const admin = equal(address, data.admin);
+  const profile = demo
+    ? Object.values(ACCOUNTS).find((a) => equal(a.address, address))
+    : null;
+  const reload = async (s = session, c = config) => {
+    if (!s) return;
+    setLoading(true);
+    setLoadError("");
+    try {
+      if (s.mode === "demo") {
+        const d = demoRead();
+        setData({
+          ...d,
+          admin: ACCOUNTS.admin.address,
+          balance: formatEther(d.balances[s.address.toLowerCase()] || "0"),
+        });
+      } else setData(await walletRead(c, s));
+    } catch (e) {
+      setLoadError(friendlyError(e));
+      setData({ jobs: [], activity: [], balance: "0", admin: "" });
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    reload();
+  }, [address, config]);
+  useEffect(() => {
+    if (!session || demo || !window.ethereum?.on) return;
+    const changed = () => {
+      setSession(null);
+      sessionStorage.removeItem("worksure.session");
+      setData({ jobs: [], activity: [], balance: "0", admin: "" });
+      setPage("dashboard");
+      notify("บัญชีหรือเครือข่ายเปลี่ยนแล้ว กรุณาเชื่อมต่อใหม่");
+    };
+    window.ethereum.on("accountsChanged", changed);
+    window.ethereum.on("chainChanged", changed);
+    return () => {
+      window.ethereum.removeListener?.("accountsChanged", changed);
+      window.ethereum.removeListener?.("chainChanged", changed);
+    };
+  }, [session, demo]);
+  useEffect(() => {
+    const f = () => {
+      if (demo) reload();
+    };
+    window.addEventListener("storage", f);
+    return () => window.removeEventListener("storage", f);
+  }, [demo, address]);
+  const login = async () => {
+    setBusy(true);
+    try {
+      let s;
+      if (loginMode === "demo") {
+        s = { mode: "demo", address: ACCOUNTS[selectedRole].address };
+        sessionStorage.setItem("worksure.session", JSON.stringify(s));
+      } else {
+        s = { mode: "wallet", ...(await walletConnect()) };
+      }
+      setSession(s);
+      setPage("dashboard");
+      setQuery("");
+      setFilter("all");
+      notify("เข้าสู่ระบบเรียบร้อย");
+    } catch (e) {
+      notify(friendlyError(e), true);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const logout = () => {
+    setSession(null);
+    sessionStorage.removeItem("worksure.session");
+    setDialog(null);
+    setData({ jobs: [], activity: [], balance: "0", admin: "" });
+    setPage("dashboard");
+    setMenu(false);
+    setQuery("");
+    setFilter("all");
+    notify("ออกจากระบบแล้ว เลือกบัญชีอื่นเพื่อทดสอบต่อได้");
+  };
+  const execute = async (action, id, form = {}) => {
+    setBusy(true);
+    setPending("");
+    try {
+      if (demo) await demoAction(address, action, id, form);
+      else
+        await walletAction(config, session, action, id, form, (hash) =>
+          setPending(hash),
+        );
+      setDialog(null);
+      notify(`${ACTIONS[action]}สำเร็จ${demo ? " · โหมดสาธิต" : ""}`);
+      await reload();
+    } catch (e) {
+      notify(friendlyError(e), true);
+    } finally {
+      setBusy(false);
+      setPending("");
+    }
+  };
+  const go = (p) => {
+    setPage(p);
+    setMenu(false);
+    setQuery("");
+    setFilter("all");
+  };
+  const mine = data.jobs.filter(
+    (j) => equal(j.employer, address) || equal(j.freelancer, address),
+  );
+  const scope = page === "admin" ? data.jobs : mine;
+  const listed = scope.filter(
+    (j) =>
+      (filter === "all" || String(j.status) === filter) &&
+      `${j.title} ${j.id} ${j.description}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+  );
+  const escrow = mine
+    .filter((j) => [1, 2, 3].includes(j.status))
+    .reduce((s, j) => s + parseEther(j.amount), 0n);
+  const paid = mine
+    .filter((j) => j.status === 4)
+    .reduce((s, j) => s + parseEther(j.amount), 0n);
+  const active = mine.filter((j) => [0, 1, 2, 3].includes(j.status)).length;
+  const nav = [
+    { id: "dashboard", label: "ภาพรวม", icon: LayoutDashboard },
+    { id: "jobs", label: "ข้อตกลงของฉัน", icon: BriefcaseBusiness },
+    { id: "history", label: "ประวัติธุรกรรม", icon: History },
+    ...(admin ? [{ id: "admin", label: "จัดการข้อพิพาท", icon: Scale }] : []),
+    { id: "settings", label: "เชื่อมต่อสัญญา", icon: Settings },
+    { id: "guide", label: "วิธีใช้งาน", icon: GraduationCap },
+  ];
+  const Badge = ({ status }) => {
+    const Icon = icons[status];
+    return (
+      <span className={`badge status-${status}`}>
+        <Icon size={12} />
+        {STATUS[status]}
+      </span>
+    );
+  };
+  const Tx = ({ event }) => {
+    const url = !demo && explorerUrl(config.chainId, event.hash);
+    return url ? (
+      <a className="hash" href={url} target="_blank" rel="noreferrer">
+        {short(event.hash)} <ExternalLink size={12} />
+      </a>
+    ) : (
+      <span className="hash" title={event.hash}>
+        {demo ? "DEMO · " : ""}
+        {short(event.hash)}
+      </span>
+    );
+  };
+  const JobActions = ({ job }) => (
+    <div className="action-row">
+      {equal(job.employer, address) && job.status === 0 && (
+        <>
+          <button
+            className="primary"
+            onClick={() => setDialog({ type: "DEPOSIT", job })}
+          >
+            <Wallet size={15} />
+            ฝากเงิน
+          </button>
+          <button
+            className="ghost danger"
+            onClick={() => setDialog({ type: "CANCEL", job })}
+          >
+            ยกเลิกงาน
+          </button>
+        </>
+      )}
+      {equal(job.freelancer, address) && [1, 2].includes(job.status) && (
+        <button
+          className="primary"
+          onClick={() => setDialog({ type: "SUBMIT", job })}
+        >
+          <FileCheck2 size={15} />
+          {job.status === 2 ? "ส่งงานใหม่" : "ส่งมอบงาน"}
+        </button>
+      )}
+      {equal(job.employer, address) && job.status === 2 && (
+        <button
+          className="primary"
+          onClick={() => setDialog({ type: "RELEASE", job })}
+        >
+          <CheckCircle2 size={15} />
+          อนุมัติและจ่ายเงิน
+        </button>
+      )}
+      {(equal(job.employer, address) || equal(job.freelancer, address)) &&
+        [1, 2].includes(job.status) && (
+          <button
+            className="secondary danger"
+            onClick={() => setDialog({ type: "DISPUTE", job })}
+          >
+            <Scale size={15} />
+            เปิดข้อพิพาท
+          </button>
+        )}
+      {admin && job.status === 3 && (
+        <button
+          className="primary"
+          onClick={() => setDialog({ type: "RESOLVE", job })}
+        >
+          <Scale size={15} />
+          พิจารณาข้อพิพาท
+        </button>
+      )}
+      {[4, 5, 6].includes(job.status) && (
+        <span className="muted small">ข้อตกลงนี้สิ้นสุดแล้ว</span>
+      )}
+    </div>
+  );
+  const JobTable = ({ jobs }) => (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>โครงการ / ข้อตกลง</th>
+            <th>ค่าจ้าง</th>
+            <th>กำหนดส่ง</th>
+            <th>สถานะ</th>
+            <th aria-label="ดูรายละเอียด" />
+          </tr>
+        </thead>
+        <tbody>
+          {jobs.map((job) => (
+            <tr
+              key={job.id}
+              onClick={() => setDialog({ type: "DETAIL", job })}
+              tabIndex="0"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setDialog({ type: "DETAIL", job });
+              }}
+            >
+              <td>
+                <div className={`project-icon p-${job.id % 4}`}>
+                  <BriefcaseBusiness size={19} />
+                </div>
+                <div>
+                  <strong>{job.title}</strong>
+                  <span className="table-sub">
+                    WS-{String(job.id).padStart(3, "0")} <span>·</span>{" "}
+                    {equal(job.employer, address)
+                      ? "ผู้ว่าจ้าง"
+                      : equal(job.freelancer, address)
+                        ? "ฟรีแลนซ์"
+                        : "คู่สัญญา"}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <strong className="numeric">{money(job.amount)}</strong>
+                <span className="table-sub">ETH</span>
+              </td>
+              <td>{date(job.deadline)}</td>
+              <td>
+                <Badge status={job.status} />
+              </td>
+              <td>
+                <button
+                  className="icon-btn"
+                  aria-label={`ดูงาน ${job.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDialog({ type: "DETAIL", job });
+                  }}
+                >
+                  <ArrowUpRight size={17} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {!jobs.length && (
+        <div className="empty">
+          <BriefcaseBusiness size={30} />
+          <h3>ยังไม่มีข้อตกลงที่ตรงกัน</h3>
+          <p>สร้างข้อตกลงใหม่ หรือเปลี่ยนตัวกรองเพื่อดูงาน</p>
+        </div>
+      )}
+    </div>
+  );
+  return (
+    <>
+      {!session ? (
+        <div className="login-shell">
+          <div className="login-story">
+            <a className="brand" href="#">
+              <span className="brand-mark">
+                <ShieldCheck size={25} />
+              </span>
+              worksure<span className="brand-dot">.</span>
+            </a>
+            <div className="login-copy">
+              <span className="eyebrow light">FREELANCE ESCROW PLATFORM</span>
+              <h1>
+                งานที่มั่นใจได้
+                <br />
+                การจ่ายเงินที่
+                <br />
+                <em>ไว้ใจกันได้.</em>
+              </h1>
+              <p>
+                พื้นที่ทำงานของผู้ว่าจ้างและฟรีแลนซ์
+                <br />
+                ดูแลทุกข้อตกลงด้วย Ethereum Smart Contract
+              </p>
+              <div className="login-steps">
+                {[
+                  "ตกลงขอบเขตงาน",
+                  "ฝากเงินไว้ใน Escrow",
+                  "ตรวจรับแล้วรับเงิน",
+                ].map((t, i) => (
+                  <div key={t}>
+                    <span>0{i + 1}</span>
+                    {t}
+                    <Check size={16} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="story-footer">
+              <ShieldCheck size={16} /> ทุกการจ่ายเงิน เป็นไปตามข้อตกลง
+            </div>
+            <div className="orb orb-one" />
+            <div className="orb orb-two" />
+          </div>
+          <main className="login-main">
+            <div className="login-top">
+              สร้างความเชื่อมั่นในทุกการทำงาน <span>↗</span>
+            </div>
+            <div className="login-card">
+              <span className="eyebrow">LET’S GET TO WORK</span>
+              <h2>ยินดีต้อนรับสู่ Work­sure</h2>
+              <p className="muted">
+                เลือกวิธีเข้าสู่ระบบเพื่อเริ่มจัดการข้อตกลงของคุณ
+              </p>
+              <div className="segmented">
+                <button
+                  className={loginMode === "demo" ? "selected" : ""}
+                  onClick={() => setLoginMode("demo")}
+                >
+                  ทดลองใช้งาน
+                </button>
+                <button
+                  className={loginMode === "wallet" ? "selected" : ""}
+                  onClick={() => setLoginMode("wallet")}
+                >
+                  เชื่อมต่อ Wallet
+                </button>
+              </div>
+              {loginMode === "demo" ? (
+                <>
+                  <div className="note">
+                    <GraduationCap size={19} />
+                    <div>
+                      <strong>โหมดสาธิต · ไม่ใช้เงินจริง</strong>
+                      <p>
+                        ข้อมูลเก็บในเบราว์เซอร์ ไม่มีธุรกรรมบนบล็อกเชน
+                        <br />
+                        ออกจากระบบเพื่อสลับบทบาททดสอบได้ทุกเมื่อ
+                      </p>
+                    </div>
+                  </div>
+                  <label className="field-label">เลือกบัญชีทดสอบ</label>
+                  <div className="role-list">
+                    {Object.entries(ACCOUNTS).map(([key, a]) => (
+                      <button
+                        key={key}
+                        className={`role-option ${selectedRole === key ? "chosen" : ""}`}
+                        onClick={() => setSelectedRole(key)}
+                      >
+                        <span className={`avatar avatar-${key}`}>
+                          {a.initials}
+                        </span>
+                        <span>
+                          <strong>{a.name}</strong>
+                          <small>
+                            {a.role} · {short(a.address)}
+                          </small>
+                        </span>
+                        <span className="radio">
+                          {selectedRole === key && <span />}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="wallet-illustration">
+                    <Wallet size={42} />
+                  </div>
+                  <h3>ใช้กระเป๋า Ethereum ของคุณ</h3>
+                  <p className="muted">
+                    รองรับ MetaMask และกระเป๋า EIP-1193
+                    <br />
+                    ตั้งค่า Contract Address หลังเชื่อมต่อได้
+                  </p>
+                  <div className="note">
+                    <ShieldCheck size={18} />
+                    <div>
+                      แนะนำ Sepolia testnet สำหรับการเรียนและทดสอบ ไม่ต้องกรอก
+                      seed phrase บนเว็บไซต์
+                    </div>
+                  </div>
+                </>
+              )}
+              <button
+                className="primary login-button"
+                disabled={busy}
+                onClick={login}
+              >
+                {busy
+                  ? "กำลังเชื่อมต่อ…"
+                  : loginMode === "demo"
+                    ? "เข้าสู่ระบบสาธิต"
+                    : "เชื่อมต่อกระเป๋า"}
+                <ArrowRight size={18} />
+              </button>
+              <p className="login-caption">
+                <LockKeyhole size={13} />{" "}
+                {loginMode === "demo"
+                  ? "ทดลองครบทุกบทบาทได้โดยไม่ต้องมีกระเป๋า"
+                  : "ยืนยันธุรกรรมด้วยกระเป๋าของคุณเท่านั้น"}
+              </p>
+            </div>
+            <footer>
+              WORKSURE © {new Date().getFullYear()}
+              <span>Freelance Escrow & Smart Payment</span>
+            </footer>
+          </main>
+        </div>
+      ) : (
+        <div className="app-shell">
+          <aside className={`sidebar ${menu ? "open" : ""}`}>
+            <a className="brand" href="#" onClick={() => go("dashboard")}>
+              <span className="brand-mark">
+                <ShieldCheck size={23} />
+              </span>
+              worksure<span className="brand-dot">.</span>
+            </a>
+            <div className="workspace-label">
+              WORKSPACE <span>v1.0</span>
+            </div>
+            <nav>
+              {nav.map((n) => (
+                <button
+                  key={n.id}
+                  className={page === n.id ? "nav-item active" : "nav-item"}
+                  onClick={() => go(n.id)}
+                >
+                  <n.icon size={18} />
+                  {n.label}
+                  {n.id === "admin" &&
+                    data.jobs.some((j) => j.status === 3) && (
+                      <span className="nav-count">
+                        {data.jobs.filter((j) => j.status === 3).length}
+                      </span>
+                    )}
+                </button>
+              ))}
+            </nav>
+            <div className="sidebar-bottom">
+              <div className="escrow-note">
+                <div className="mini-shield">
+                  <ShieldCheck size={21} />
+                </div>
+                <strong>ข้อตกลงที่ตรวจสอบได้</strong>
+                <p>
+                  เงินจะจ่ายเมื่อผ่านการตรวจรับ
+                  <br />
+                  หรือการตัดสินข้อพิพาทเท่านั้น
+                </p>
+                <button onClick={() => go("guide")}>
+                  รู้จัก Escrow <ArrowUpRight size={14} />
+                </button>
+              </div>
+              <div className="side-network">
+                <span className="live-dot" />
+                {demo ? "Demo workspace" : `Chain ID ${config.chainId}`}
+                <span>{demo ? "LOCAL" : "WEB3"}</span>
+              </div>
+            </div>
+          </aside>
+          <div className="app-main">
+            <header className="topbar">
+              <div className="breadcrumb">
+                <button
+                  className="icon-btn mobile-menu"
+                  aria-label="เปิดเมนู"
+                  onClick={() => setMenu(!menu)}
+                >
+                  <Menu size={20} />
+                </button>
+                <span>Workspace</span>
+                <ChevronRight size={14} />
+                <strong>{nav.find((n) => n.id === page)?.label}</strong>
+              </div>
+              <div className="topbar-right">
+                <span className={`mode-pill ${demo ? "demo" : "web3"}`}>
+                  <span />
+                  {demo ? "โหมดสาธิต" : "Ethereum Wallet"}
+                </span>
+                <button
+                  className="account-chip"
+                  title={address}
+                  onClick={() => go("settings")}
+                >
+                  <span className="avatar tiny">
+                    {profile?.initials || "W"}
+                  </span>
+                  <span>{profile?.name || short(address)}</span>
+                </button>
+                <button className="logout" onClick={logout}>
+                  <LogOut size={15} />
+                  <span>ออกจากระบบ</span>
+                </button>
+              </div>
+            </header>
+            <main className="content">
+              {demo && (
+                <div className="demo-strip">
+                  <GraduationCap size={15} />
+                  <span>
+                    พื้นที่ทดลอง · ใช้ ETH จำลองและข้อมูลในเบราว์เซอร์
+                  </span>
+                  <button onClick={logout}>
+                    สลับบัญชี <ArrowRight size={13} />
+                  </button>
+                </div>
+              )}
+              {loadError && (
+                <div className="error-banner" role="alert">
+                  <AlertCircle size={18} />
+                  <div>
+                    <strong>ยังโหลดข้อมูลสัญญาไม่ได้</strong>
+                    <p>{loadError}</p>
+                  </div>
+                  <button className="secondary" onClick={() => go("settings")}>
+                    ตั้งค่าสัญญา
+                  </button>
+                </div>
+              )}
+              {page === "dashboard" && (
+                <>
+                  <div className="page-heading">
+                    <div>
+                      <span className="eyebrow">YOUR WORK, PROTECTED</span>
+                      <h1>
+                        สวัสดี, {profile?.name || short(address)}{" "}
+                        <span className="wave">✳</span>
+                      </h1>
+                      <p>ทุกข้อตกลง ทุกความคืบหน้า อยู่ที่นี่แล้ว</p>
+                    </div>
+                    <button
+                      className="primary"
+                      disabled={loading || !!loadError}
+                      onClick={() => setDialog({ type: "CREATE" })}
+                    >
+                      <Plus size={18} />
+                      สร้างข้อตกลงใหม่
+                    </button>
+                  </div>
+                  <div className="stats">
+                    <div className="stat-card dark">
+                      <div className="stat-top">
+                        <span>เงินที่อยู่ใน Escrow</span>
+                        <span className="stat-icon">
+                          <LockKeyhole size={17} />
+                        </span>
+                      </div>
+                      <div className="stat-number">
+                        {money(formatEther(escrow))} <small>ETH</small>
+                      </div>
+                      <div className="stat-foot">
+                        <span className="live-dot" />
+                        รอเงื่อนไขการจ่ายเงิน
+                      </div>
+                      <div className="stat-orbit" />
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-top">
+                        <span>ข้อตกลงที่กำลังดำเนินการ</span>
+                        <span className="stat-icon">
+                          <BriefcaseBusiness size={17} />
+                        </span>
+                      </div>
+                      <div className="stat-number">
+                        {active}
+                        <small>โครงการ</small>
+                      </div>
+                      <div className="stat-foot">
+                        จากทั้งหมด {mine.length} ข้อตกลง
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-top">
+                        <span>จ่ายเงินสำเร็จแล้ว</span>
+                        <span className="stat-icon">
+                          <ArrowUpRight size={18} />
+                        </span>
+                      </div>
+                      <div className="stat-number">
+                        {money(formatEther(paid))}
+                        <small>ETH</small>
+                      </div>
+                      <div className="stat-foot">
+                        <CheckCircle2 size={13} />{" "}
+                        จ่ายเงินตามการตรวจรับและข้อพิพาท
+                      </div>
+                    </div>
+                  </div>
+                  <div className="dashboard-grid">
+                    <section className="panel projects-panel">
+                      <div className="panel-heading">
+                        <div>
+                          <h2>
+                            ข้อตกลงของฉัน{" "}
+                            <span className="count-pill">{mine.length}</span>
+                          </h2>
+                          <p>ติดตามสถานะและจัดการงานของคุณ</p>
+                        </div>
+                        <button
+                          className="text-button"
+                          onClick={() => go("jobs")}
+                        >
+                          ดูทั้งหมด <ArrowRight size={15} />
+                        </button>
+                      </div>
+                      <JobTable jobs={mine.slice(-5).reverse()} />
+                    </section>
+                    <section className="panel activity-panel">
+                      <div className="panel-heading">
+                        <h2>ความเคลื่อนไหวล่าสุด</h2>
+                        <span className="live-dot" />
+                      </div>
+                      <div className="activity-list">
+                        {data.activity
+                          .filter(
+                            (a) => mine.some((j) => j.id === a.jobId) || admin,
+                          )
+                          .slice(-4)
+                          .reverse()
+                          .map((a, i) => (
+                            <div className="activity-item" key={a.hash + i}>
+                              <span
+                                className={`activity-icon ${a.action === "DISPUTE" ? "amber" : ""}`}
+                              >
+                                {a.action === "DISPUTE" ? (
+                                  <Scale size={16} />
+                                ) : a.action === "SUBMIT" ? (
+                                  <FileCheck2 size={16} />
+                                ) : (
+                                  <ArrowDownLeft size={16} />
+                                )}
+                              </span>
+                              <div>
+                                <strong>{ACTIONS[a.action]}</strong>
+                                <p>
+                                  {
+                                    data.jobs.find((j) => j.id === a.jobId)
+                                      ?.title
+                                  }
+                                </p>
+                                <small>{dateTime(a.time)}</small>
+                              </div>
+                            </div>
+                          ))}
+                        {!data.activity.length && (
+                          <p className="muted">ยังไม่มีความเคลื่อนไหว</p>
+                        )}
+                      </div>
+                      <button
+                        className="activity-link"
+                        onClick={() => go("history")}
+                      >
+                        ดูประวัติธุรกรรมทั้งหมด <ArrowUpRight size={15} />
+                      </button>
+                    </section>
+                  </div>
+                  <div className="bottom-banner">
+                    <span className="banner-icon">
+                      <ShieldCheck size={30} />
+                    </span>
+                    <div>
+                      <span className="eyebrow">
+                        BUILT ON TRUST. VERIFIED ON CHAIN.
+                      </span>
+                      <h3>ข้อตกลงชัดเจน ทำงานได้อย่างสบายใจ</h3>
+                      <p>ฝากเงิน → ส่งมอบงาน → ตรวจรับ → จ่ายเงิน</p>
+                    </div>
+                    <button className="secondary" onClick={() => go("guide")}>
+                      ระบบทำงานอย่างไร <ArrowUpRight size={15} />
+                    </button>
+                  </div>
+                </>
+              )}
+              {(page === "jobs" || page === "admin") && (
+                <>
+                  <div className="page-heading">
+                    <div>
+                      <span className="eyebrow">
+                        {page === "admin" ? "ADMINISTRATION" : "MY AGREEMENTS"}
+                      </span>
+                      <h1>
+                        {page === "admin" ? "จัดการข้อพิพาท" : "ข้อตกลงของฉัน"}
+                      </h1>
+                      <p>
+                        {page === "admin"
+                          ? "ตรวจสอบหลักฐานและตัดสินจ่ายเงินหรือคืนเงินให้คู่สัญญา"
+                          : "ตรวจสอบขอบเขตงาน เงินประกัน และสถานะการส่งมอบ"}
+                      </p>
+                    </div>
+                    {page === "jobs" && (
+                      <button
+                        className="primary"
+                        disabled={!!loadError}
+                        onClick={() => setDialog({ type: "CREATE" })}
+                      >
+                        <Plus size={18} />
+                        สร้างข้อตกลงใหม่
+                      </button>
+                    )}
+                  </div>
+                  {page === "admin" && (
+                    <div className="admin-summary">
+                      <Scale size={24} />
+                      <div>
+                        <strong>
+                          {data.jobs.filter((j) => j.status === 3).length}{" "}
+                          ข้อพิพาทรอการพิจารณา
+                        </strong>
+                        <p>
+                          ผู้ดูแลตัดสินได้เฉพาะงานที่เปิดข้อพิพาทแล้ว
+                          เงินจะจ่ายเต็มจำนวนให้ฝ่ายที่เลือก
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <section className="panel">
+                    <div className="table-controls">
+                      <div className="search">
+                        <Search size={17} />
+                        <input
+                          aria-label="ค้นหาโครงการ"
+                          placeholder="ค้นหาชื่อโครงการ หรือเลขข้อตกลง…"
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                        />
+                      </div>
+                      <select
+                        aria-label="กรองสถานะ"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                      >
+                        <option value="all">สถานะทั้งหมด</option>
+                        {STATUS.map((s, i) => (
+                          <option key={s} value={i}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="icon-btn"
+                        aria-label="รีเฟรชข้อมูล"
+                        disabled={loading}
+                        onClick={() => reload()}
+                      >
+                        <RefreshCw
+                          size={17}
+                          className={loading ? "spin" : ""}
+                        />
+                      </button>
+                    </div>
+                    <JobTable jobs={listed.slice().reverse()} />
+                  </section>
+                </>
+              )}
+              {page === "history" && (
+                <>
+                  <div className="page-heading">
+                    <div>
+                      <span className="eyebrow">TRANSACTION HISTORY</span>
+                      <h1>ประวัติธุรกรรม</h1>
+                      <p>
+                        {demo
+                          ? "บันทึกการทดสอบในเบราว์เซอร์ · รหัส DEMO ไม่ใช่ Transaction Hash จริง"
+                          : "บันทึกจาก Activity events ของสัญญาที่ตั้งค่า · ยืนยันบนบล็อกเชนแล้ว"}
+                      </p>
+                    </div>
+                    <button
+                      className="secondary"
+                      disabled={loading}
+                      onClick={() => reload()}
+                    >
+                      <RefreshCw size={16} />
+                      รีเฟรช
+                    </button>
+                  </div>
+                  <div className="panel table-wrap">
+                    <table className="history-table">
+                      <thead>
+                        <tr>
+                          <th>รายการ</th>
+                          <th>ข้อตกลง</th>
+                          <th>จำนวน</th>
+                          <th>ผู้ทำรายการ / เวลา</th>
+                          <th>{demo ? "รหัสสาธิต" : "Transaction Hash"}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.activity
+                          .filter(
+                            (a) => mine.some((j) => j.id === a.jobId) || admin,
+                          )
+                          .slice()
+                          .reverse()
+                          .map((a, i) => (
+                            <tr key={a.hash + i}>
+                              <td>
+                                <span className="event-tag">
+                                  {ACTIONS[a.action]}
+                                </span>
+                                <span
+                                  className="table-sub details-text"
+                                  title={a.details}
+                                >
+                                  {a.details}
+                                </span>
+                              </td>
+                              <td>WS-{String(a.jobId).padStart(3, "0")}</td>
+                              <td className="numeric">{money(a.amount)} ETH</td>
+                              <td>
+                                <span title={a.actor}>{short(a.actor)}</span>
+                                <span className="table-sub">
+                                  {dateTime(a.time)}
+                                </span>
+                              </td>
+                              <td>
+                                <Tx event={a} />
+                                <button
+                                  className="icon-btn"
+                                  aria-label="คัดลอกรหัสธุรกรรม"
+                                  onClick={() =>
+                                    navigator.clipboard
+                                      .writeText(a.hash)
+                                      .then(() => notify("คัดลอกรหัสแล้ว"))
+                                      .catch(() =>
+                                        notify("คัดลอกไม่สำเร็จ", true),
+                                      )
+                                  }
+                                >
+                                  <Copy size={13} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                    {!data.activity.length && (
+                      <div className="empty">ยังไม่มีธุรกรรม</div>
+                    )}
+                  </div>
+                </>
+              )}
+              {page === "settings" && (
+                <>
+                  <div className="page-heading">
+                    <div>
+                      <span className="eyebrow">CONNECTION & ACCOUNT</span>
+                      <h1>เชื่อมต่อสัญญา</h1>
+                      <p>ตั้งค่า Smart Contract ที่ deploy จาก Remix IDE</p>
+                    </div>
+                  </div>
+                  <div className="settings-grid">
+                    <section className="panel settings-panel">
+                      <h2>
+                        <Code2 size={20} /> Ethereum Smart Contract
+                      </h2>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const f = new FormData(e.target);
+                          const c = {
+                            address: f.get("address").trim(),
+                            chainId: Number(f.get("chainId")),
+                            deploymentBlock: Number(f.get("deploymentBlock")),
+                          };
+                          if (!isAddress(c.address)) {
+                            notify("Contract Address ไม่ถูกต้อง", true);
+                            return;
+                          }
+                          if (
+                            !Number.isSafeInteger(c.chainId) ||
+                            c.chainId <= 0 ||
+                            !Number.isSafeInteger(c.deploymentBlock) ||
+                            c.deploymentBlock < 0
+                          ) {
+                            notify(
+                              "Chain ID หรือ Deployment Block ไม่ถูกต้อง",
+                              true,
+                            );
+                            return;
+                          }
+                          configSave(c);
+                          setConfig(c);
+                          notify("บันทึกการตั้งค่าแล้ว");
+                        }}
+                      >
+                        <label>
+                          Contract Address
+                          <input
+                            name="address"
+                            placeholder="0x…"
+                            defaultValue={config.address}
+                            required
+                            autoComplete="off"
+                          />
+                        </label>
+                        <div className="two-fields">
+                          <label>
+                            Chain ID
+                            <input
+                              name="chainId"
+                              type="number"
+                              min="1"
+                              step="1"
+                              defaultValue={config.chainId}
+                              required
+                            />
+                          </label>
+                          <label>
+                            Deployment Block
+                            <input
+                              name="deploymentBlock"
+                              type="number"
+                              min="0"
+                              step="1"
+                              defaultValue={config.deploymentBlock}
+                              required
+                            />
+                          </label>
+                        </div>
+                        <div className="note">
+                          <Link2 size={18} />
+                          <div>
+                            Sepolia: Chain ID 11155111
+                            <br />
+                            ใช้ address และเลข block จากธุรกรรม deploy ของคุณ{" "}
+                            {demo && (
+                              <p>
+                                ขณะนี้อยู่โหมดสาธิต
+                                การตั้งค่านี้ใช้เมื่อเชื่อมต่อ Wallet เท่านั้น
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button className="primary" type="submit">
+                          <Check size={16} />
+                          บันทึกการตั้งค่า
+                        </button>
+                      </form>
+                    </section>
+                    <div>
+                      <section className="panel settings-panel">
+                        <h2>
+                          <Wallet size={20} /> บัญชีปัจจุบัน
+                        </h2>
+                        <p className="muted">
+                          {profile?.role || "Ethereum wallet"}
+                        </p>
+                        <code className="address-full">{address}</code>
+                        <div className="balance-row">
+                          <span>ยอดคงเหลือ{demo ? "จำลอง" : ""}</span>
+                          <strong>{money(data.balance)} ETH</strong>
+                        </div>
+                        <button className="secondary" onClick={logout}>
+                          <LogOut size={15} />
+                          ออกจากระบบ / สลับบัญชี
+                        </button>
+                        <p className="small muted">
+                          Wallet: ปุ่มนี้ยกเลิก session ของเว็บไซต์
+                          การสลับบัญชีจริงให้เลือกใน MetaMask แล้วเชื่อมต่อใหม่
+                        </p>
+                      </section>
+                      {demo && (
+                        <section className="panel settings-panel reset-panel">
+                          <h3>เริ่มการสาธิตใหม่</h3>
+                          <p className="small muted">
+                            ลบรายการสาธิตทั้งหมดและคืนข้อมูลตัวอย่าง
+                            การตั้งค่าสัญญายังคงอยู่
+                          </p>
+                          <button
+                            className="secondary danger"
+                            onClick={() => setDialog({ type: "RESET" })}
+                          >
+                            รีเซ็ตข้อมูลสาธิต
+                          </button>
+                        </section>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+              {page === "guide" && (
+                <>
+                  <div className="page-heading">
+                    <div>
+                      <span className="eyebrow">HOW WORKSURE WORKS</span>
+                      <h1>จากข้อตกลง สู่การจ่ายเงิน</h1>
+                      <p>ทดสอบได้ครบทั้งผู้ว่าจ้าง ฟรีแลนซ์ และผู้ดูแล</p>
+                    </div>
+                    <a
+                      className="secondary"
+                      href="https://remix.ethereum.org"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      เปิด Remix IDE <ExternalLink size={15} />
+                    </a>
+                  </div>
+                  <div className="guide-grid">
+                    {[
+                      {
+                        title: "สร้างข้อตกลง",
+                        text: "ผู้ว่าจ้างระบุชื่อ รายละเอียด ค่าจ้าง ETH วันส่ง และ Wallet ฟรีแลนซ์",
+                        icon: BriefcaseBusiness,
+                      },
+                      {
+                        title: "ฝากเงินเข้า Escrow",
+                        text: "ผู้ว่าจ้างฝาก ETH ครบจำนวนตามข้อตกลง ก่อนเริ่มส่งมอบงาน",
+                        icon: Wallet,
+                      },
+                      {
+                        title: "ส่งมอบงาน",
+                        text: "ฟรีแลนซ์แนบ URL หรือ hash เป็นหลักฐาน เปลี่ยนบัญชีด้วยปุ่มออกจากระบบ",
+                        icon: FileCheck2,
+                      },
+                      {
+                        title: "ตรวจรับและจ่ายเงิน",
+                        text: "ผู้ว่าจ้างอนุมัติหลังส่งงาน สัญญาโอน ETH ให้ฟรีแลนซ์และห้ามจ่ายซ้ำ",
+                        icon: CheckCircle2,
+                      },
+                      {
+                        title: "จัดการข้อพิพาท",
+                        text: "คู่สัญญาเปิดข้อพิพาท ผู้ดูแลตัดสินจ่ายฟรีแลนซ์หรือคืนผู้ว่าจ้างเต็มจำนวน",
+                        icon: Scale,
+                      },
+                      {
+                        title: "ตรวจสอบธุรกรรม",
+                        text: "ตรวจสถานะ จำนวนเงิน ผู้ทำรายการ และ Transaction Hash ในหน้าประวัติ",
+                        icon: History,
+                      },
+                    ].map((g, i) => (
+                      <section className="panel guide-card" key={g.title}>
+                        <div>
+                          <span className="guide-number">0{i + 1}</span>
+                          <g.icon size={23} />
+                        </div>
+                        <h2>{g.title}</h2>
+                        <p>{g.text}</p>
+                      </section>
+                    ))}
+                  </div>
+                  <section className="panel settings-panel">
+                    <h2>ใช้งานกับ Remix IDE และ GitHub Pages</h2>
+                    <p>
+                      <a
+                        className="secondary"
+                        href="./report/TEST-REPORT.html"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        รายงานทดสอบพร้อมภาพ <ExternalLink size={15} />
+                      </a>
+                    </p>
+                    <ol className="guide-steps">
+                      <li>
+                        <a href="./contracts/FreelanceEscrow.sol" download>
+                          ดาวน์โหลด FreelanceEscrow.sol
+                        </a>{" "}
+                        แล้วเปิดใน Remix IDE
+                      </li>
+                      <li>
+                        Compile ด้วย Solidity 0.8.24, EVM Paris, เปิด
+                        optimization 200 runs แล้ว deploy ผ่าน Remix VM
+                        เพื่อทดลอง หรือ Injected Provider บน Sepolia
+                        เพื่อเชื่อมหน้าเว็บ บัญชี deploy เป็นผู้ดูแล
+                      </li>
+                      <li>
+                        นำ Contract Address, Chain ID และ Deployment Block
+                        มาบันทึกในหน้าเชื่อมต่อสัญญา
+                        ออกจากระบบแล้วเลือกเชื่อมต่อ Wallet
+                      </li>
+                      <li>
+                        GitHub Pages ให้บริการหน้าบ้าน ส่วนการเก็บ ETH
+                        และตรวจสิทธิ์อยู่ใน Smart Contract บน Ethereum
+                      </li>
+                    </ol>
+                    <div className="note">
+                      <AlertCircle size={18} />
+                      <div>
+                        โหมดสาธิตใช้ localStorage และบัญชีตัวอย่าง
+                        จึงไม่ใช่ระบบยืนยันตัวตนหรือการชำระเงินจริง
+                        กำหนดส่งใช้ติดตามงานเท่านั้น
+                        ไม่มีการจ่ายหรือคืนเงินอัตโนมัติเมื่อพ้นกำหนด
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
+              <footer className="app-footer">
+                <span>
+                  worksure<span className="brand-dot">.</span>{" "}
+                  <span>งานมั่นใจ จ่ายตามข้อตกลง</span>
+                </span>
+                <span>
+                  <ShieldCheck size={13} />
+                  {demo
+                    ? "Demo environment · No real funds"
+                    : "Ethereum Smart Contract"}
+                </span>
+              </footer>
+            </main>
+          </div>
+        </div>
+      )}
+      {dialog && (
+        <Modal
+          key={`${dialog.type}-${dialog.job?.id || ""}`}
+          dialog={dialog}
+          busy={busy}
+          pending={pending}
+          demo={demo}
+          address={address}
+          data={data}
+          close={() => {
+            if (!busy) setDialog(null);
+          }}
+          execute={execute}
+          JobActions={JobActions}
+          Badge={Badge}
+          Tx={Tx}
+          reset={() => {
+            demoReset();
+            setDialog(null);
+            reload();
+            notify("รีเซ็ตข้อมูลสาธิตแล้ว");
+          }}
+        />
+      )}
+      {toast && (
+        <div
+          className={`toast ${toast.error ? "toast-error" : ""}`}
+          role={toast.error ? "alert" : "status"}
+        >
+          {toast.error ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+          <span>{toast.text}</span>
+          <button
+            className="icon-btn"
+            onClick={() => setToast(null)}
+            aria-label="ปิดข้อความ"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
+    </>
+  );
 }
-function Modal({dialog,busy,pending,demo,address,data,close,execute,JobActions,Badge,Tx,reset}){
- const {type,job}=dialog;const [error,setError]=useState('');
- useEffect(()=>{const f=e=>{if(e.key==='Escape')close();};window.addEventListener('keydown',f);const previous=document.activeElement;const dialogEl=document.querySelector('[role="dialog"]');dialogEl?.querySelector('input,textarea,button')?.focus();const trap=e=>{if(e.key!=='Tab')return;const focusables=[...dialogEl.querySelectorAll('button:not(:disabled),input,textarea,select,a[href]')];const first=focusables[0],last=focusables.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}};dialogEl?.addEventListener('keydown',trap);document.body.style.overflow='hidden';return()=>{window.removeEventListener('keydown',f);dialogEl?.removeEventListener('keydown',trap);document.body.style.overflow='';previous?.focus();};},[busy]);
- const title=type==='CREATE'?'สร้างข้อตกลงใหม่':type==='DETAIL'?'รายละเอียดข้อตกลง':type==='RESOLVE'?'พิจารณาข้อพิพาท':type==='RESET'?'รีเซ็ตข้อมูลสาธิต?':ACTIONS[type];
- const submit=e=>{e.preventDefault();setError('');const f=new FormData(e.target);let action=type;let payload={};
-  try{if(type==='CREATE'){payload={title:f.get('title').trim(),description:f.get('description').trim(),amount:f.get('amount'),freelancer:f.get('freelancer').trim(),deadline:Math.floor(new Date(f.get('deadline')).getTime()/1000)};if(!isAddress(payload.freelancer)||equal(payload.freelancer,address))throw Error('กรุณาระบุ Wallet ฟรีแลนซ์ที่ถูกต้องและต่างจากผู้ว่าจ้าง');if(parseEther(payload.amount)<=0n)throw Error('ค่าจ้างต้องมากกว่า 0 ETH');if(!Number.isFinite(payload.deadline)||payload.deadline<=Date.now()/1000)throw Error('กำหนดส่งต้องอยู่ในอนาคต');if(new TextEncoder().encode(payload.title).length>240||new TextEncoder().encode(payload.description).length>6000)throw Error('ชื่อหรือรายละเอียดเกินจำนวน bytes ที่สัญญารองรับ');}
-  if(['SUBMIT','DISPUTE','RESOLVE'].includes(type)){payload.text=f.get('text').trim();if(!payload.text)throw Error('กรุณากรอกข้อมูล');if(new TextEncoder().encode(payload.text).length>2000)throw Error('ข้อความต้องไม่เกิน 2000 bytes');if(type==='RESOLVE')action=f.get('decision');}
-  execute(action,job?.id,payload);
- }catch(e){setError(friendlyError(e));}
- };
- const safeLink=value=>/^https?:\/\//i.test(value);
- return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)close();}}><section className={`modal ${type==='DETAIL'?'modal-wide':''}`} role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div className="modal-heading"><div><span className="eyebrow">{job?`AGREEMENT WS-${String(job.id).padStart(3,'0')}`:'WORKSURE'}</span><h2 id="dialog-title">{title}</h2></div><button className="icon-btn" disabled={busy} aria-label="ปิดหน้าต่าง" onClick={close}><X size={21}/></button></div>
- {type==='DETAIL'?<><div className="detail-title"><h3>{job.title}</h3><Badge status={job.status}/></div><p className="description">{job.description}</p><div className="detail-grid"><div><label>ค่าจ้างตามข้อตกลง</label><strong>{money(job.amount)} ETH</strong></div><div><label>กำหนดส่ง</label><strong>{date(job.deadline)}</strong></div><div><label>ผู้ว่าจ้าง</label><code>{job.employer}</code></div><div><label>ฟรีแลนซ์</label><code>{job.freelancer}</code></div></div>{job.evidence&&<div className="detail-evidence"><label><FileCheck2 size={16}/>หลักฐานการส่งมอบ</label>{safeLink(job.evidence)?<a href={job.evidence} target="_blank" rel="noreferrer">{job.evidence}<ExternalLink size={13}/></a>:<code>{job.evidence}</code>}</div>}{job.disputeReason&&<div className="note warning"><Scale size={18}/><div><strong>เหตุผลข้อพิพาท</strong><p>{job.disputeReason}</p></div></div>}<JobActions job={job}/><div className="detail-timeline"><h3>ประวัติข้อตกลง</h3>{data.activity.filter(a=>a.jobId===job.id).slice().reverse().map((a,i)=><div key={a.hash+i}><span className="timeline-dot"/><div><strong>{ACTIONS[a.action]}</strong><p>{a.details}</p><small>{dateTime(a.time)} · {short(a.actor)}</small></div><Tx event={a}/></div>)}</div></>:type==='RESET'?<><p>รายการสาธิตและยอดเงินจะกลับสู่ข้อมูลตัวอย่างเริ่มต้น การเปลี่ยนแปลงนี้ย้อนกลับไม่ได้</p><div className="modal-buttons"><button className="secondary" onClick={close}>กลับ</button><button className="primary" onClick={reset}>ยืนยันรีเซ็ต</button></div></>:<form onSubmit={submit}>
- {type==='CREATE'?<><label>ชื่อโครงการ<input name="title" required maxLength="80" placeholder="เช่น ออกแบบเว็บไซต์ร้านกาแฟ"/></label><label>รายละเอียดและขอบเขตงาน<textarea name="description" rows="3" required maxLength="1800" placeholder="ระบุสิ่งที่ต้องส่งมอบและเงื่อนไขการตรวจรับ"/></label><div className="two-fields"><label>ค่าจ้าง (ETH)<input name="amount" inputMode="decimal" required placeholder="0.05" pattern="[0-9]+(\.[0-9]{1,18})?"/></label><label>กำหนดส่ง<input name="deadline" type="datetime-local" required/></label></div><label>Wallet Address ของฟรีแลนซ์<input name="freelancer" required placeholder="0x…" defaultValue={demo?ACCOUNTS.freelancer.address:''}/></label><div className="note"><LockKeyhole size={18}/><div>สร้างข้อตกลงก่อน แล้วฝาก ETH ในขั้นตอนถัดไป {demo&&'บัญชีฟรีแลนซ์สาธิต: 0x2222…2222'}</div></div></>:<><div className="confirmation-job"><BriefcaseBusiness size={21}/><div><strong>{job.title}</strong><p>{money(job.amount)} ETH · {STATUS[job.status]}</p></div></div>{type==='DEPOSIT'&&<div className="note"><Wallet size={19}/><div>ฝาก {money(job.amount)} ETH เต็มจำนวนเข้า Escrow เงินจะถูกพักไว้จนกว่าจะอนุมัติหรือมีคำตัดสินข้อพิพาท</div></div>}{type==='RELEASE'&&<div className="note warning"><AlertCircle size={19}/><div>ยืนยันว่าตรวจรับงานแล้ว สัญญาจะโอน {money(job.amount)} ETH ให้ฟรีแลนซ์ทันที การจ่ายเงินนี้ย้อนกลับไม่ได้</div></div>}{type==='CANCEL'&&<p className="muted">ยกเลิกข้อตกลงก่อนฝากเงิน ข้อตกลงนี้จะใช้งานต่อไม่ได้</p>}{type==='SUBMIT'&&<label>URL หรือ Hash ของผลงาน<textarea name="text" required maxLength="2000" rows="3" placeholder="https://… หรือ ipfs://… หรือ SHA-256" defaultValue={job.evidence}/></label>}{type==='DISPUTE'&&<><label>เหตุผลการเปิดข้อพิพาท<textarea name="text" required maxLength="2000" rows="4" placeholder="อธิบายปัญหาและเงื่อนไขที่ยังไม่ตรงข้อตกลง"/></label><div className="note warning"><Scale size={18}/><div>ระหว่างข้อพิพาท การส่งงานและการอนุมัติจ่ายเงินจะถูกระงับ จนกว่าผู้ดูแลตัดสิน</div></div></>}{type==='RESOLVE'&&<><div className="note warning"><Scale size={18}/><div><strong>เหตุผลจากคู่สัญญา</strong><p>{job.disputeReason}</p></div></div>{job.evidence&&<p className="description">หลักฐาน: {job.evidence}</p>}<label>คำตัดสิน<select name="decision" aria-label="คำตัดสิน"><option value="RESOLVE_REFUND">คืนเงินเต็มจำนวนให้ผู้ว่าจ้าง</option><option value="RESOLVE_PAY">จ่ายเงินเต็มจำนวนให้ฟรีแลนซ์</option></select></label><label>เหตุผลประกอบการตัดสิน<textarea name="text" required maxLength="2000" rows="3" placeholder="ระบุผลการพิจารณาและเหตุผล"/></label><p className="small muted">ยืนยันแล้วเงินจะถูกโอนทันที และตัดสินซ้ำไม่ได้</p></>}</>}
- {error&&<div className="form-error" role="alert"><AlertCircle size={16}/>{error}</div>}{pending&&<div className="note"><Clock3 size={18}/><div>ส่งธุรกรรมแล้ว กำลังรอการยืนยันบนเครือข่าย<br/><code className="address-full">{pending}</code></div></div>}<div className="modal-buttons"><button className="secondary" type="button" disabled={busy} onClick={close}>กลับ</button><button className="primary" disabled={busy} type="submit">{busy?(pending?'กำลังรอยืนยัน…':'กำลังดำเนินการ…'):type==='CREATE'?'สร้างข้อตกลง':type==='RESOLVE'?'ยืนยันคำตัดสิน':`ยืนยัน${ACTIONS[type]}`}{!busy&&<ArrowRight size={16}/>}</button></div>{demo&&<div className="modal-caption">โหมดสาธิต · ไม่มีการใช้ ETH จริง</div>}
- </form>}
- </section></div>;
+function Modal({
+  dialog,
+  busy,
+  pending,
+  demo,
+  address,
+  data,
+  close,
+  execute,
+  JobActions,
+  Badge,
+  Tx,
+  reset,
+}) {
+  const { type, job } = dialog;
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const f = (e) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", f);
+    const previous = document.activeElement;
+    const dialogEl = document.querySelector('[role="dialog"]');
+    dialogEl?.querySelector("input,textarea,button")?.focus();
+    const trap = (e) => {
+      if (e.key !== "Tab") return;
+      const focusables = [
+        ...dialogEl.querySelectorAll(
+          "button:not(:disabled),input,textarea,select,a[href]",
+        ),
+      ];
+      const first = focusables[0],
+        last = focusables.at(-1);
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+    dialogEl?.addEventListener("keydown", trap);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", f);
+      dialogEl?.removeEventListener("keydown", trap);
+      document.body.style.overflow = "";
+      previous?.focus();
+    };
+  }, [busy]);
+  const title =
+    type === "CREATE"
+      ? "สร้างข้อตกลงใหม่"
+      : type === "DETAIL"
+        ? "รายละเอียดข้อตกลง"
+        : type === "RESOLVE"
+          ? "พิจารณาข้อพิพาท"
+          : type === "RESET"
+            ? "รีเซ็ตข้อมูลสาธิต?"
+            : ACTIONS[type];
+  const submit = (e) => {
+    e.preventDefault();
+    setError("");
+    const f = new FormData(e.target);
+    let action = type;
+    let payload = {};
+    try {
+      if (type === "CREATE") {
+        payload = {
+          title: f.get("title").trim(),
+          description: f.get("description").trim(),
+          amount: f.get("amount"),
+          freelancer: f.get("freelancer").trim(),
+          deadline: Math.floor(new Date(f.get("deadline")).getTime() / 1000),
+        };
+        if (
+          !isAddress(payload.freelancer) ||
+          equal(payload.freelancer, address)
+        )
+          throw Error(
+            "กรุณาระบุ Wallet ฟรีแลนซ์ที่ถูกต้องและต่างจากผู้ว่าจ้าง",
+          );
+        if (parseEther(payload.amount) <= 0n)
+          throw Error("ค่าจ้างต้องมากกว่า 0 ETH");
+        if (
+          !Number.isFinite(payload.deadline) ||
+          payload.deadline <= Date.now() / 1000
+        )
+          throw Error("กำหนดส่งต้องอยู่ในอนาคต");
+        if (
+          new TextEncoder().encode(payload.title).length > 240 ||
+          new TextEncoder().encode(payload.description).length > 6000
+        )
+          throw Error("ชื่อหรือรายละเอียดเกินจำนวน bytes ที่สัญญารองรับ");
+      }
+      if (["SUBMIT", "DISPUTE", "RESOLVE"].includes(type)) {
+        payload.text = f.get("text").trim();
+        if (!payload.text) throw Error("กรุณากรอกข้อมูล");
+        if (new TextEncoder().encode(payload.text).length > 2000)
+          throw Error("ข้อความต้องไม่เกิน 2000 bytes");
+        if (type === "RESOLVE") action = f.get("decision");
+      }
+      execute(action, job?.id, payload);
+    } catch (e) {
+      setError(friendlyError(e));
+    }
+  };
+  const safeLink = (value) => /^https?:\/\//i.test(value);
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) close();
+      }}
+    >
+      <section
+        className={`modal ${type === "DETAIL" ? "modal-wide" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dialog-title"
+      >
+        <div className="modal-heading">
+          <div>
+            <span className="eyebrow">
+              {job
+                ? `AGREEMENT WS-${String(job.id).padStart(3, "0")}`
+                : "WORKSURE"}
+            </span>
+            <h2 id="dialog-title">{title}</h2>
+          </div>
+          <button
+            className="icon-btn"
+            disabled={busy}
+            aria-label="ปิดหน้าต่าง"
+            onClick={close}
+          >
+            <X size={21} />
+          </button>
+        </div>
+        {type === "DETAIL" ? (
+          <>
+            <div className="detail-title">
+              <h3>{job.title}</h3>
+              <Badge status={job.status} />
+            </div>
+            <p className="description">{job.description}</p>
+            <div className="detail-grid">
+              <div>
+                <label>ค่าจ้างตามข้อตกลง</label>
+                <strong>{money(job.amount)} ETH</strong>
+              </div>
+              <div>
+                <label>กำหนดส่ง</label>
+                <strong>{date(job.deadline)}</strong>
+              </div>
+              <div>
+                <label>ผู้ว่าจ้าง</label>
+                <code>{job.employer}</code>
+              </div>
+              <div>
+                <label>ฟรีแลนซ์</label>
+                <code>{job.freelancer}</code>
+              </div>
+            </div>
+            {job.evidence && (
+              <div className="detail-evidence">
+                <label>
+                  <FileCheck2 size={16} />
+                  หลักฐานการส่งมอบ
+                </label>
+                {safeLink(job.evidence) ? (
+                  <a href={job.evidence} target="_blank" rel="noreferrer">
+                    {job.evidence}
+                    <ExternalLink size={13} />
+                  </a>
+                ) : (
+                  <code>{job.evidence}</code>
+                )}
+              </div>
+            )}
+            {job.disputeReason && (
+              <div className="note warning">
+                <Scale size={18} />
+                <div>
+                  <strong>เหตุผลข้อพิพาท</strong>
+                  <p>{job.disputeReason}</p>
+                </div>
+              </div>
+            )}
+            <JobActions job={job} />
+            <div className="detail-timeline">
+              <h3>ประวัติข้อตกลง</h3>
+              {data.activity
+                .filter((a) => a.jobId === job.id)
+                .slice()
+                .reverse()
+                .map((a, i) => (
+                  <div key={a.hash + i}>
+                    <span className="timeline-dot" />
+                    <div>
+                      <strong>{ACTIONS[a.action]}</strong>
+                      <p>{a.details}</p>
+                      <small>
+                        {dateTime(a.time)} · {short(a.actor)}
+                      </small>
+                    </div>
+                    <Tx event={a} />
+                  </div>
+                ))}
+            </div>
+          </>
+        ) : type === "RESET" ? (
+          <>
+            <p>
+              รายการสาธิตและยอดเงินจะกลับสู่ข้อมูลตัวอย่างเริ่มต้น
+              การเปลี่ยนแปลงนี้ย้อนกลับไม่ได้
+            </p>
+            <div className="modal-buttons">
+              <button className="secondary" onClick={close}>
+                กลับ
+              </button>
+              <button className="primary" onClick={reset}>
+                ยืนยันรีเซ็ต
+              </button>
+            </div>
+          </>
+        ) : (
+          <form onSubmit={submit}>
+            {type === "CREATE" ? (
+              <>
+                <label>
+                  ชื่อโครงการ
+                  <input
+                    name="title"
+                    required
+                    maxLength="80"
+                    placeholder="เช่น ออกแบบเว็บไซต์ร้านกาแฟ"
+                  />
+                </label>
+                <label>
+                  รายละเอียดและขอบเขตงาน
+                  <textarea
+                    name="description"
+                    rows="3"
+                    required
+                    maxLength="1800"
+                    placeholder="ระบุสิ่งที่ต้องส่งมอบและเงื่อนไขการตรวจรับ"
+                  />
+                </label>
+                <div className="two-fields">
+                  <label>
+                    ค่าจ้าง (ETH)
+                    <input
+                      name="amount"
+                      inputMode="decimal"
+                      required
+                      placeholder="0.05"
+                      pattern="[0-9]+(\.[0-9]{1,18})?"
+                    />
+                  </label>
+                  <label>
+                    กำหนดส่ง
+                    <input name="deadline" type="datetime-local" required />
+                  </label>
+                </div>
+                <label>
+                  Wallet Address ของฟรีแลนซ์
+                  <input
+                    name="freelancer"
+                    required
+                    placeholder="0x…"
+                    defaultValue={demo ? ACCOUNTS.freelancer.address : ""}
+                  />
+                </label>
+                <div className="note">
+                  <LockKeyhole size={18} />
+                  <div>
+                    สร้างข้อตกลงก่อน แล้วฝาก ETH ในขั้นตอนถัดไป{" "}
+                    {demo && "บัญชีฟรีแลนซ์สาธิต: 0x2222…2222"}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="confirmation-job">
+                  <BriefcaseBusiness size={21} />
+                  <div>
+                    <strong>{job.title}</strong>
+                    <p>
+                      {money(job.amount)} ETH · {STATUS[job.status]}
+                    </p>
+                  </div>
+                </div>
+                {type === "DEPOSIT" && (
+                  <div className="note">
+                    <Wallet size={19} />
+                    <div>
+                      ฝาก {money(job.amount)} ETH เต็มจำนวนเข้า Escrow
+                      เงินจะถูกพักไว้จนกว่าจะอนุมัติหรือมีคำตัดสินข้อพิพาท
+                    </div>
+                  </div>
+                )}
+                {type === "RELEASE" && (
+                  <div className="note warning">
+                    <AlertCircle size={19} />
+                    <div>
+                      ยืนยันว่าตรวจรับงานแล้ว สัญญาจะโอน {money(job.amount)} ETH
+                      ให้ฟรีแลนซ์ทันที การจ่ายเงินนี้ย้อนกลับไม่ได้
+                    </div>
+                  </div>
+                )}
+                {type === "CANCEL" && (
+                  <p className="muted">
+                    ยกเลิกข้อตกลงก่อนฝากเงิน ข้อตกลงนี้จะใช้งานต่อไม่ได้
+                  </p>
+                )}
+                {type === "SUBMIT" && (
+                  <label>
+                    URL หรือ Hash ของผลงาน
+                    <textarea
+                      name="text"
+                      required
+                      maxLength="2000"
+                      rows="3"
+                      placeholder="https://… หรือ ipfs://… หรือ SHA-256"
+                      defaultValue={job.evidence}
+                    />
+                  </label>
+                )}
+                {type === "DISPUTE" && (
+                  <>
+                    <label>
+                      เหตุผลการเปิดข้อพิพาท
+                      <textarea
+                        name="text"
+                        required
+                        maxLength="2000"
+                        rows="4"
+                        placeholder="อธิบายปัญหาและเงื่อนไขที่ยังไม่ตรงข้อตกลง"
+                      />
+                    </label>
+                    <div className="note warning">
+                      <Scale size={18} />
+                      <div>
+                        ระหว่างข้อพิพาท การส่งงานและการอนุมัติจ่ายเงินจะถูกระงับ
+                        จนกว่าผู้ดูแลตัดสิน
+                      </div>
+                    </div>
+                  </>
+                )}
+                {type === "RESOLVE" && (
+                  <>
+                    <div className="note warning">
+                      <Scale size={18} />
+                      <div>
+                        <strong>เหตุผลจากคู่สัญญา</strong>
+                        <p>{job.disputeReason}</p>
+                      </div>
+                    </div>
+                    {job.evidence && (
+                      <p className="description">หลักฐาน: {job.evidence}</p>
+                    )}
+                    <label>
+                      คำตัดสิน
+                      <select name="decision" aria-label="คำตัดสิน">
+                        <option value="RESOLVE_REFUND">
+                          คืนเงินเต็มจำนวนให้ผู้ว่าจ้าง
+                        </option>
+                        <option value="RESOLVE_PAY">
+                          จ่ายเงินเต็มจำนวนให้ฟรีแลนซ์
+                        </option>
+                      </select>
+                    </label>
+                    <label>
+                      เหตุผลประกอบการตัดสิน
+                      <textarea
+                        name="text"
+                        required
+                        maxLength="2000"
+                        rows="3"
+                        placeholder="ระบุผลการพิจารณาและเหตุผล"
+                      />
+                    </label>
+                    <p className="small muted">
+                      ยืนยันแล้วเงินจะถูกโอนทันที และตัดสินซ้ำไม่ได้
+                    </p>
+                  </>
+                )}
+              </>
+            )}
+            {error && (
+              <div className="form-error" role="alert">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+            {pending && (
+              <div className="note">
+                <Clock3 size={18} />
+                <div>
+                  ส่งธุรกรรมแล้ว กำลังรอการยืนยันบนเครือข่าย
+                  <br />
+                  <code className="address-full">{pending}</code>
+                </div>
+              </div>
+            )}
+            <div className="modal-buttons">
+              <button
+                className="secondary"
+                type="button"
+                disabled={busy}
+                onClick={close}
+              >
+                กลับ
+              </button>
+              <button className="primary" disabled={busy} type="submit">
+                {busy
+                  ? pending
+                    ? "กำลังรอยืนยัน…"
+                    : "กำลังดำเนินการ…"
+                  : type === "CREATE"
+                    ? "สร้างข้อตกลง"
+                    : type === "RESOLVE"
+                      ? "ยืนยันคำตัดสิน"
+                      : `ยืนยัน${ACTIONS[type]}`}
+                {!busy && <ArrowRight size={16} />}
+              </button>
+            </div>
+            {demo && (
+              <div className="modal-caption">
+                โหมดสาธิต · ไม่มีการใช้ ETH จริง
+              </div>
+            )}
+          </form>
+        )}
+      </section>
+    </div>
+  );
 }
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById("root")).render(<App />);
