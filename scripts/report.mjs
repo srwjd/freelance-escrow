@@ -157,7 +157,7 @@ ${section(
 </main></body></html>`;
 fs.writeFileSync("docs/TEST-REPORT.html", html);
 const browser = await chromium.launch({
-  executablePath: "/usr/bin/chromium",
+  executablePath: process.env.BROWSER_EXECUTABLE_PATH || "/usr/bin/chromium",
   headless: true,
   args: ["--no-sandbox"],
 });

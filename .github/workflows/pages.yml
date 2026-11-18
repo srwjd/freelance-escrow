@@ -25,6 +25,7 @@ jobs:
       - run: google-chrome --version
       - run: npm run test:contract
       - run: npm run test:ui
+      - run: node scripts/report.mjs
       - run: npm run build
       - uses: actions/upload-artifact@v4
         if: always()
@@ -32,6 +33,7 @@ jobs:
           name: test-evidence
           path: |
             docs/evidence/
+            docs/TEST-REPORT.*
             playwright-report/
       - uses: actions/upload-pages-artifact@v3
         with:
